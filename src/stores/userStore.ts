@@ -28,6 +28,7 @@ interface UserStore {
   loadUser: () => Promise<void>;
   addXP: (event: XPEvent) => Promise<{ leveledUp: boolean; newLevel?: number }>;
   updateStreak: () => Promise<void>;
+  updateProgress: (updates: Partial<UserProgress>) => Promise<void>;
   updateSettings: (settings: Partial<UserSettings>) => Promise<void>;
   getXPToNextLevel: () => number;
   getXPProgress: () => { current: number; required: number; percentage: number };
@@ -112,6 +113,15 @@ export const useUserStore = create<UserStore>((set, get) => ({
       lastActivityDate: today,
     };
 
+    await db.userProgress.put({ ...updatedProgress, id: 'default' });
+    set({ progress: updatedProgress });
+  },
+
+  updateProgress: async (updates: Partial<UserProgress>) => {
+    const { progress } = get();
+    if (!progress) return;
+
+    const updatedProgress: UserProgress = { ...progress, ...updates };
     await db.userProgress.put({ ...updatedProgress, id: 'default' });
     set({ progress: updatedProgress });
   },

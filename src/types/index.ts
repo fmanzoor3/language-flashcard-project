@@ -33,6 +33,7 @@ export interface Flashcard {
   audioUrl?: string;
   exampleSentence?: string;
   exampleTranslation?: string;
+  notes?: string;         // User's personal notes
   category?: string;
   tags: string[];
   sourceScenarioId?: string;

@@ -75,9 +75,9 @@ export default function FlashcardsPage() {
     : null;
 
   return (
-    <div className="h-full flex flex-col md:flex-row">
+    <div className="h-full flex flex-col md:flex-row overflow-hidden">
       {/* Flashcard Section */}
-      <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
+      <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0 md:h-full overflow-hidden">
         {!currentSession ? (
           // Session Start / Empty State
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -272,7 +272,7 @@ export default function FlashcardsPage() {
       </div>
 
       {/* Game Section */}
-      <div className="h-48 md:h-auto md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 p-4 flex flex-col">
+      <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 p-4 flex flex-col shrink-0">
         {/* Island Scene */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
           {/* Character */}

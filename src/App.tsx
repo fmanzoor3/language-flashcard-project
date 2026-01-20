@@ -40,7 +40,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
+      <div className="h-screen flex flex-col bg-slate-900 text-slate-100 overflow-hidden">
         {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 px-4 py-3">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -78,7 +78,7 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden min-h-0">
           <Routes>
             <Route path="/" element={<FlashcardsPage />} />
             <Route path="/conversations" element={<ConversationsPage />} />
