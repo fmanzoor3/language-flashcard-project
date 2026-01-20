@@ -577,7 +577,7 @@ export default function ConversationsPage() {
                   <span className="text-3xl">{SCENARIO_EMOJIS[scenario.type]}</span>
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-bold">{scenario.title}</h3>
+                      <h3 className={`font-bold ${masteryStyles.textClass || 'text-slate-100'}`}>{scenario.title}</h3>
                       <div className="flex items-center gap-1.5">
                         {masteryTier !== 'none' && (
                           <span className={`text-xs px-2 py-0.5 rounded font-medium ${masteryStyles.badge}`}>
@@ -589,8 +589,8 @@ export default function ConversationsPage() {
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-400 mt-1">{scenario.titleTurkish}</p>
-                    <p className="text-sm text-slate-500 mt-2">{scenario.description}</p>
+                    <p className={`text-sm mt-1 ${masteryStyles.textClass ? 'opacity-80' : 'text-slate-400'} ${masteryStyles.textClass || ''}`}>{scenario.titleTurkish}</p>
+                    <p className={`text-sm mt-2 ${masteryStyles.textClass ? 'opacity-70' : 'text-slate-500'} ${masteryStyles.textClass || ''}`}>{scenario.description}</p>
                     {scenario.vocabularyFocus && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {scenario.vocabularyFocus.slice(0, 4).map((word) => (
@@ -598,6 +598,13 @@ export default function ConversationsPage() {
                             {word}
                           </span>
                         ))}
+                      </div>
+                    )}
+                    {masteryStyles.showMasteredLabel && (
+                      <div className="mt-3 pt-2 border-t border-amber-500/30">
+                        <span className="text-xs font-bold text-amber-400 tracking-wider">
+                          MASTERED
+                        </span>
                       </div>
                     )}
                   </div>

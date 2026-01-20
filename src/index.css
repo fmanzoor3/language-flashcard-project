@@ -54,3 +54,39 @@ body {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* Master tier shine animation */
+@keyframes master-shine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.master-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.master-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.08) 65%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: master-shine 4s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}

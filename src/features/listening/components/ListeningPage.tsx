@@ -250,7 +250,7 @@ export default function ListeningPage() {
                         <span className="text-2xl">{SCENARIO_EMOJIS[scenario.type] || '📝'}</span>
                         <div className="flex-1">
                           <div className="flex items-center justify-between gap-2 mb-1">
-                            <h3 className="font-medium text-slate-100">{scenario.title}</h3>
+                            <h3 className={`font-medium ${masteryStyles.textClass || 'text-slate-100'}`}>{scenario.title}</h3>
                             <div className="flex items-center gap-1.5">
                               {masteryTier !== 'none' && (
                                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${masteryStyles.badge}`}>
@@ -262,13 +262,20 @@ export default function ListeningPage() {
                               </span>
                             </div>
                           </div>
-                          <p className="text-sm text-slate-400 mb-2">{scenario.titleTurkish}</p>
-                          <p className="text-xs text-slate-500">{scenario.description}</p>
+                          <p className={`text-sm mb-2 ${masteryStyles.textClass ? 'opacity-80' : 'text-slate-400'} ${masteryStyles.textClass || ''}`}>{scenario.titleTurkish}</p>
+                          <p className={`text-xs ${masteryStyles.textClass ? 'opacity-70' : 'text-slate-500'} ${masteryStyles.textClass || ''}`}>{scenario.description}</p>
 
                           {existingLessons.length > 0 && (
                             <p className="text-xs text-emerald-400 mt-2">
                               {existingLessons.length} lesson(s) generated
                             </p>
+                          )}
+                          {masteryStyles.showMasteredLabel && (
+                            <div className="mt-3 pt-2 border-t border-amber-500/30">
+                              <span className="text-xs font-bold text-amber-400 tracking-wider">
+                                MASTERED
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>

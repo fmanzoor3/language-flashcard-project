@@ -223,13 +223,15 @@ export const DIFFICULTY_TO_MASTERY_TIER: Record<DifficultyLevel, MasteryTier> = 
   C2: 'master',
 };
 
-/** Visual styling for each mastery tier */
+/** Visual styling for each mastery tier (martial arts belt progression) */
 export const MASTERY_TIER_STYLES: Record<MasteryTier, {
   border: string;
   bg: string;
   glow: string;
   badge: string;
   label: string;
+  textClass?: string;
+  showMasteredLabel?: boolean;
 }> = {
   none: {
     border: 'border-slate-700',
@@ -239,46 +241,58 @@ export const MASTERY_TIER_STYLES: Record<MasteryTier, {
     label: '',
   },
   bronze: {
-    border: 'border-amber-700/50',
-    bg: 'bg-gradient-to-br from-amber-900/20 to-slate-800/50',
-    glow: 'shadow-amber-900/20',
-    badge: 'bg-amber-700 text-amber-100',
-    label: 'A1 Mastered',
+    // White belt - beginner
+    border: 'border-slate-400',
+    bg: 'bg-slate-500/80',
+    glow: '',
+    badge: 'bg-slate-200 text-slate-800',
+    label: 'A1',
+    textClass: 'text-white',
   },
   silver: {
-    border: 'border-slate-400/50',
-    bg: 'bg-gradient-to-br from-slate-400/20 to-slate-800/50',
-    glow: 'shadow-slate-400/20',
-    badge: 'bg-slate-400 text-slate-900',
-    label: 'A2 Mastered',
+    // Yellow belt
+    border: 'border-yellow-500',
+    bg: 'bg-yellow-500/80',
+    glow: '',
+    badge: 'bg-yellow-300 text-yellow-900',
+    label: 'A2',
+    textClass: 'text-yellow-950',
   },
   gold: {
-    border: 'border-yellow-500/50',
-    bg: 'bg-gradient-to-br from-yellow-500/20 to-slate-800/50',
-    glow: 'shadow-yellow-500/30 shadow-lg',
-    badge: 'bg-yellow-500 text-yellow-900',
-    label: 'B1 Mastered',
+    // Orange belt
+    border: 'border-orange-500',
+    bg: 'bg-orange-500/80',
+    glow: '',
+    badge: 'bg-orange-300 text-orange-900',
+    label: 'B1',
+    textClass: 'text-white',
   },
   platinum: {
-    border: 'border-cyan-400/50',
-    bg: 'bg-gradient-to-br from-cyan-400/20 to-slate-800/50',
-    glow: 'shadow-cyan-400/30 shadow-lg',
-    badge: 'bg-cyan-400 text-cyan-900',
-    label: 'B2 Mastered',
+    // Green belt
+    border: 'border-green-500',
+    bg: 'bg-green-600/80',
+    glow: '',
+    badge: 'bg-green-300 text-green-900',
+    label: 'B2',
+    textClass: 'text-white',
   },
   diamond: {
-    border: 'border-purple-400/50',
-    bg: 'bg-gradient-to-br from-purple-400/20 to-slate-800/50',
-    glow: 'shadow-purple-400/40 shadow-xl',
-    badge: 'bg-purple-400 text-purple-900',
-    label: 'C1 Mastered',
+    // Blue belt
+    border: 'border-blue-500',
+    bg: 'bg-blue-600/80',
+    glow: '',
+    badge: 'bg-blue-300 text-blue-900',
+    label: 'C1',
+    textClass: 'text-white',
   },
   master: {
-    border: 'border-amber-400/70',
-    bg: 'bg-gradient-to-br from-amber-400/30 via-yellow-500/20 to-slate-800/50',
-    glow: 'shadow-amber-400/50 shadow-xl animate-pulse',
-    badge: 'bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-900',
-    label: 'C2 Master',
+    // Black belt with gold border - master
+    border: 'border-amber-500/70 ring-1 ring-amber-400/40',
+    bg: 'bg-gradient-to-br from-slate-800/80 via-slate-900/85 to-slate-950/90 master-shine',
+    glow: 'shadow-amber-500/30 shadow-lg',
+    badge: 'bg-gradient-to-r from-slate-800 to-slate-900 text-amber-400 ring-1 ring-amber-500/50',
+    label: 'C2',
+    showMasteredLabel: true,
   },
 };
 
