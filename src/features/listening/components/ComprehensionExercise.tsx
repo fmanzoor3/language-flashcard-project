@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useListeningStore } from '../../../stores/listeningStore';
+import VocabularyQuickAdd from './VocabularyQuickAdd';
 import type { ListeningExercise, ExerciseProgress } from '../../../types';
 
 interface ComprehensionExerciseProps {
@@ -20,6 +21,8 @@ export default function ComprehensionExercise({
   const [answers, setAnswers] = useState<Record<string, { answer: string; correct: boolean; xpEarned: number }>>({});
   const [showTranslation, setShowTranslation] = useState(false);
   const [showPassageTranslation, setShowPassageTranslation] = useState(false);
+  const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
+  const [showVocabSection, setShowVocabSection] = useState(false);
 
   const questions = exercise.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
@@ -83,18 +86,39 @@ export default function ComprehensionExercise({
       <div className="bg-slate-800/50 rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-slate-300">Passage</span>
-          <button
-            onClick={() => setShowPassageTranslation(!showPassageTranslation)}
-            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            {showPassageTranslation ? 'Hide' : 'Show'} translation
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowVocabSection(!showVocabSection)}
+              className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              {showVocabSection ? 'Hide' : 'Save'} vocabulary
+            </button>
+            <button
+              onClick={() => setShowPassageTranslation(!showPassageTranslation)}
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              {showPassageTranslation ? 'Hide' : 'Show'} translation
+            </button>
+          </div>
         </div>
         <p className="text-slate-100 leading-relaxed">{exercise.audioText}</p>
         {showPassageTranslation && (
           <p className="text-sm text-slate-400 mt-3 italic border-t border-slate-700 pt-3">
             {exercise.audioTextTranslation}
           </p>
+        )}
+
+        {/* Vocabulary Quick Add Section */}
+        {showVocabSection && (
+          <div className="mt-3 pt-3 border-t border-slate-700">
+            <VocabularyQuickAdd
+              text={exercise.audioText}
+              translation={exercise.audioTextTranslation}
+              addedWords={addedWords}
+              onWordAdded={(word) => setAddedWords((prev) => new Set(prev).add(word))}
+              className="text-slate-200"
+            />
+          </div>
         )}
       </div>
 

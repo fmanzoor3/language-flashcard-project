@@ -8,122 +8,175 @@ import type {
   Scenario,
   ListeningLesson,
   ListeningExercise,
+  ListeningExerciseType,
   ComprehensionQuestion,
   DifficultyLevel,
 } from '../../types';
 
-const DIFFICULTY_GUIDANCE: Record<DifficultyLevel, { sentenceLength: string; vocabulary: string; speed: string }> = {
+export interface LessonGenerationOptions {
+  difficulty: DifficultyLevel;
+  exerciseTypes: ListeningExerciseType[];
+  exerciseCount: number;
+}
+
+const DIFFICULTY_GUIDANCE: Record<DifficultyLevel, {
+  sentenceLength: string;
+  vocabulary: string;
+  grammarNotes: string;
+  exampleSentences: string;
+}> = {
   A1: {
     sentenceLength: '3-6 words per sentence',
-    vocabulary: 'Basic greetings, numbers, common objects, simple verbs',
-    speed: 'Very slow and clear',
+    vocabulary: 'Basic greetings (merhaba, günaydın), numbers (bir, iki, üç), common nouns (ev, su, ekmek), simple verbs (var, yok, git-, gel-)',
+    grammarNotes: 'Simple present tense, basic questions with "mi/mı", possessive suffixes (-im, -in), locative (-de/-da)',
+    exampleSentences: 'Ben Türküm. Su var mı? Evde miyiz? Merhaba, nasılsınız?',
   },
   A2: {
     sentenceLength: '5-10 words per sentence',
-    vocabulary: 'Everyday vocabulary, simple past tense, basic questions',
-    speed: 'Slow and clear',
+    vocabulary: 'Everyday actions, time expressions (bugün, yarın, dün), food, transport, family members',
+    grammarNotes: 'Past tense (-di/-dı), future with -(y)ecek, object markers (-i/-ı), ablative (-den/-dan)',
+    exampleSentences: 'Dün markete gittim. Yarın ne yapacaksın? Kahvaltıda ekmek yedik.',
   },
   B1: {
     sentenceLength: '8-15 words per sentence',
-    vocabulary: 'Varied vocabulary, all common tenses, idioms occasionally',
-    speed: 'Normal conversational pace',
+    vocabulary: 'Abstract concepts, emotions, work vocabulary, formal expressions',
+    grammarNotes: 'Reported speech (-miş), conditional (-se/-sa), relative clauses, passive voice',
+    exampleSentences: 'Toplantıya geç kalmışsınız. Hava güzel olursa pikniğe gideriz. Okuduğum kitap çok ilginç.',
   },
   B2: {
     sentenceLength: '10-20 words per sentence',
-    vocabulary: 'Rich vocabulary, complex structures, idioms',
-    speed: 'Natural conversational pace',
+    vocabulary: 'Idiomatic expressions, professional vocabulary, nuanced adjectives',
+    grammarNotes: 'Complex subordinate clauses, optative (-e/-a), aorist tense, verbal nouns',
+    exampleSentences: 'Keşke daha erken başlasaydık. Bu konuyu ele almak için önce tarihsel arka planı inceleyelim.',
   },
   C1: {
     sentenceLength: '15-25 words per sentence',
-    vocabulary: 'Sophisticated vocabulary, nuanced expressions',
-    speed: 'Fast natural speech',
+    vocabulary: 'Literary expressions, specialized terms, subtle distinctions',
+    grammarNotes: 'Advanced embedded clauses, formal register variations, archaic forms',
+    exampleSentences: 'Söz konusu mesele, toplumsal değişimin kaçınılmaz sonuçlarından biri olarak değerlendirilmelidir.',
   },
   C2: {
     sentenceLength: '20+ words per sentence',
-    vocabulary: 'Native-level vocabulary, colloquialisms, wordplay',
-    speed: 'Native speaker pace',
+    vocabulary: 'Native-level fluency with regional variations, proverbs, cultural references',
+    grammarNotes: 'All grammatical structures including rare and literary forms',
+    exampleSentences: 'Atasözümüz "damlaya damlaya göl olur" der; bu da sabır ve istikrarın önemini vurgular.',
   },
 };
 
 /**
  * Generate a listening lesson based on a scenario
  */
-export async function generateListeningLesson(scenario: Scenario): Promise<ListeningLesson> {
-  const guidance = DIFFICULTY_GUIDANCE[scenario.difficulty];
+export async function generateListeningLesson(
+  scenario: Scenario,
+  options?: LessonGenerationOptions
+): Promise<ListeningLesson> {
+  const difficulty = options?.difficulty || scenario.difficulty;
+  const exerciseTypes = options?.exerciseTypes || ['dictation', 'comprehension'];
+  const exerciseCount = options?.exerciseCount || 6;
 
-  const prompt = `Create a Turkish listening lesson based on this scenario:
+  const guidance = DIFFICULTY_GUIDANCE[difficulty];
 
-Scenario: ${scenario.title} (${scenario.titleTurkish})
-Description: ${scenario.description}
-Difficulty: ${scenario.difficulty}
-Vocabulary Focus: ${scenario.vocabularyFocus?.join(', ') || 'general'}
-Grammar Focus: ${scenario.grammarFocus?.join(', ') || 'general'}
+  // Calculate exercise distribution
+  const hasDictation = exerciseTypes.includes('dictation');
+  const hasComprehension = exerciseTypes.includes('comprehension');
 
-Language guidance for ${scenario.difficulty} level:
-- Sentence length: ${guidance.sentenceLength}
-- Vocabulary: ${guidance.vocabulary}
-- Speaking speed: ${guidance.speed}
+  let dictationCount = 0;
+  let comprehensionCount = 0;
 
-Generate 6 exercises total:
-- 4 dictation exercises (user listens and types what they hear)
-- 2 comprehension exercises (user listens to a passage and answers questions)
+  if (hasDictation && hasComprehension) {
+    dictationCount = Math.ceil(exerciseCount * 0.67); // ~67% dictation
+    comprehensionCount = exerciseCount - dictationCount;
+  } else if (hasDictation) {
+    dictationCount = exerciseCount;
+  } else {
+    comprehensionCount = exerciseCount;
+  }
 
-Respond with ONLY JSON (no markdown code blocks):
+  const exerciseInstructions = [];
+
+  if (dictationCount > 0) {
+    exerciseInstructions.push(`${dictationCount} DICTATION exercises where the user listens and types what they hear`);
+  }
+  if (comprehensionCount > 0) {
+    exerciseInstructions.push(`${comprehensionCount} COMPREHENSION exercises where the user listens to a passage and answers questions`);
+  }
+
+  const prompt = `You are a Turkish language expert. Create a listening lesson for Turkish learners.
+
+SCENARIO CONTEXT:
+- Topic: ${scenario.title} (${scenario.titleTurkish})
+- Description: ${scenario.description}
+- Target vocabulary: ${scenario.vocabularyFocus?.join(', ') || 'general conversation'}
+- Grammar focus: ${scenario.grammarFocus?.join(', ') || 'general'}
+
+DIFFICULTY LEVEL: ${difficulty}
+- Sentence complexity: ${guidance.sentenceLength}
+- Vocabulary scope: ${guidance.vocabulary}
+- Grammar features: ${guidance.grammarNotes}
+- Example sentences at this level: ${guidance.exampleSentences}
+
+EXERCISE REQUIREMENTS:
+Generate exactly ${exerciseCount} exercises:
+${exerciseInstructions.join('\n')}
+
+CRITICAL TURKISH LANGUAGE RULES:
+1. ALL Turkish text MUST be grammatically correct and natural-sounding
+2. Use ONLY real Turkish words - no invented or incorrect forms
+3. Apply vowel harmony correctly (e/a, i/ı/u/ü patterns)
+4. Use correct suffixes and their variants (-de/-da/-te/-ta, -den/-dan/-ten/-tan, etc.)
+5. Word order should be natural (typically Subject-Object-Verb)
+6. For ${difficulty} level, sentences should feel like native Turkish speech
+
+FOR DICTATION EXERCISES:
+- Create realistic, contextual sentences a Turkish speaker would actually say
+- The audioText must be something natural to hear in the scenario context
+- Hints should progressively reveal: (1) first word, (2) sentence structure, (3) full answer
+
+FOR COMPREHENSION EXERCISES:
+- Create a coherent mini-story or dialogue (not random sentences)
+- The passage should have a clear beginning, middle, point
+- Questions should test understanding of meaning, not just word recognition
+
+Respond with ONLY valid JSON (no markdown, no code blocks):
 {
   "title": "English lesson title",
   "titleTurkish": "Turkish lesson title",
-  "description": "Brief description of what the lesson covers",
-  "estimatedMinutes": 10,
-  "vocabularyFocus": ["word1", "word2", "word3"],
-  "grammarFocus": ["grammar point 1", "grammar point 2"],
+  "description": "Brief description",
+  "estimatedMinutes": ${Math.ceil(exerciseCount * 1.5)},
+  "vocabularyFocus": ["key", "Turkish", "words", "from", "exercises"],
+  "grammarFocus": ["grammar patterns used"],
   "exercises": [
     {
       "type": "dictation",
       "order": 1,
-      "audioText": "Turkish text to be spoken (appropriate for ${scenario.difficulty} level)",
+      "audioText": "Natural Turkish sentence",
       "audioTextTranslation": "English translation",
-      "targetText": "Expected written answer (same as audioText or acceptable variant)",
-      "acceptableVariants": ["alternative acceptable spellings"],
-      "hints": ["First word is...", "The sentence structure is...", "Full answer"]
+      "targetText": "Same as audioText",
+      "acceptableVariants": [],
+      "hints": ["İlk kelime: ...", "Cümle yapısı: ...", "Tam cevap: ..."]
     },
     {
       "type": "comprehension",
-      "order": 5,
-      "audioText": "A longer Turkish passage (30-60 words for ${scenario.difficulty})",
-      "audioTextTranslation": "English translation of the passage",
+      "order": ${dictationCount + 1},
+      "audioText": "Longer Turkish passage telling a coherent story...",
+      "audioTextTranslation": "English translation of passage",
       "questions": [
         {
-          "questionText": "Question in Turkish",
-          "questionTranslation": "Question in English",
+          "questionText": "Soru Türkçe?",
+          "questionTranslation": "Question in English?",
           "questionType": "multiple-choice",
-          "options": ["Option A", "Option B", "Option C", "Option D"],
-          "correctAnswer": "Option A",
-          "explanation": "Why this is correct"
-        },
-        {
-          "questionText": "Another question in Turkish",
-          "questionTranslation": "Another question in English",
-          "questionType": "true-false",
-          "options": ["Doğru (True)", "Yanlış (False)"],
-          "correctAnswer": "Doğru (True)",
+          "options": ["A seçeneği", "B seçeneği", "C seçeneği", "D seçeneği"],
+          "correctAnswer": "A seçeneği",
           "explanation": "Why this is correct"
         }
       ]
     }
   ]
-}
-
-Make sure:
-1. All Turkish text is grammatically correct and natural
-2. Dictation exercises gradually increase in difficulty within the lesson
-3. Comprehension passages are coherent stories/dialogues related to the scenario
-4. Questions test actual understanding, not just word matching
-5. Hints for dictation go from subtle to complete answer
-6. Include vocabulary from the focus list where possible`;
+}`;
 
   const response = await chatCompletion(
     [{ role: 'user', content: prompt }],
-    { model: 'gpt-4o-mini', temperature: 0.7, maxTokens: 3000 }
+    { model: 'gpt-4o-mini', temperature: 0.7, maxTokens: 4000 }
   );
 
   try {
@@ -134,7 +187,7 @@ Make sure:
       (ex: Omit<ListeningExercise, 'id' | 'difficulty'>, index: number) => ({
         ...ex,
         id: `ex-${Date.now()}-${index}`,
-        difficulty: scenario.difficulty,
+        difficulty: difficulty,
         questions: ex.questions?.map((q: Omit<ComprehensionQuestion, 'id'>, qIndex: number) => ({
           ...q,
           id: `q-${Date.now()}-${index}-${qIndex}`,
@@ -147,11 +200,11 @@ Make sure:
       title: parsed.title,
       titleTurkish: parsed.titleTurkish,
       description: parsed.description,
-      difficulty: scenario.difficulty,
+      difficulty: difficulty,
       scenarioId: scenario.id,
       vocabularyFocus: parsed.vocabularyFocus || scenario.vocabularyFocus || [],
       grammarFocus: parsed.grammarFocus || scenario.grammarFocus || [],
-      estimatedMinutes: parsed.estimatedMinutes || 10,
+      estimatedMinutes: parsed.estimatedMinutes || Math.ceil(exerciseCount * 1.5),
       exercises,
       createdAt: new Date(),
       isGenerated: true,
@@ -171,6 +224,8 @@ export async function generateAdditionalExercises(
   lesson: ListeningLesson,
   count: number = 3
 ): Promise<ListeningExercise[]> {
+  const guidance = DIFFICULTY_GUIDANCE[lesson.difficulty];
+
   const prompt = `Generate ${count} more Turkish listening exercises for this lesson:
 
 Lesson: ${lesson.title}
@@ -178,16 +233,20 @@ Difficulty: ${lesson.difficulty}
 Vocabulary Focus: ${lesson.vocabularyFocus.join(', ')}
 Grammar Focus: ${lesson.grammarFocus.join(', ')}
 
+Language guidance:
+- ${guidance.sentenceLength}
+- ${guidance.grammarNotes}
+
 Existing exercises cover: ${lesson.exercises.map((e) => e.audioText).join('; ')}
 
 Generate NEW exercises that don't repeat existing content.
-Mix of dictation and comprehension types.
+All Turkish MUST be grammatically correct with proper vowel harmony.
 
 Respond with ONLY JSON array:
 [
   {
     "type": "dictation",
-    "audioText": "Turkish text",
+    "audioText": "Natural Turkish sentence",
     "audioTextTranslation": "English translation",
     "targetText": "Expected answer",
     "hints": ["hint1", "hint2", "full answer"]
@@ -196,7 +255,7 @@ Respond with ONLY JSON array:
 
   const response = await chatCompletion(
     [{ role: 'user', content: prompt }],
-    { model: 'gpt-4o-mini', temperature: 0.8 }
+    { model: 'gpt-4o-mini', temperature: 0.7 }
   );
 
   try {

@@ -3,6 +3,7 @@ import { useListeningStore } from '../../../stores/listeningStore';
 import { useConversationStore } from '../../../stores/conversationStore';
 import { isRealtimeAudioAvailable } from '../../../services/azure/realtimeAudioService';
 import LessonPlayer from './LessonPlayer';
+import LessonConfig, { type LessonConfigOptions } from './LessonConfig';
 import type { Scenario, DifficultyLevel, ListeningLesson } from '../../../types';
 
 const DIFFICULTY_STYLES: Record<DifficultyLevel, string> = {
@@ -42,7 +43,7 @@ export default function ListeningPage() {
   const { scenarios, loadScenarios } = useConversationStore();
 
   const [view, setView] = useState<'lessons' | 'scenarios'>('lessons');
-  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
+  const [configScenario, setConfigScenario] = useState<Scenario | null>(null);
 
   const audioAvailable = isRealtimeAudioAvailable();
 
@@ -57,17 +58,28 @@ export default function ListeningPage() {
   }
 
   const filteredLessons = lessons.filter((l) => l.difficulty === selectedDifficulty);
-  const filteredScenarios = scenarios.filter((s) => s.difficulty === selectedDifficulty);
+  // Show all scenarios, user can override difficulty in config
+  const allScenarios = scenarios;
 
-  const handleGenerateLesson = async (scenario: Scenario) => {
-    setSelectedScenario(scenario);
+  const handleSelectScenario = (scenario: Scenario) => {
+    setConfigScenario(scenario);
+  };
+
+  const handleStartLesson = async (options: LessonConfigOptions) => {
+    if (!configScenario) return;
+
     try {
-      const lesson = await generateLessonFromScenario(scenario);
+      // Create a modified scenario with user's chosen difficulty
+      const scenarioWithConfig = {
+        ...configScenario,
+        difficulty: options.difficulty,
+      };
+      const lesson = await generateLessonFromScenario(scenarioWithConfig, options);
       await startLesson(lesson.id);
+      setConfigScenario(null);
     } catch {
       // Error handled in store
     }
-    setSelectedScenario(null);
   };
 
   const handleStartExistingLesson = async (lesson: ListeningLesson) => {
@@ -94,6 +106,16 @@ export default function ListeningPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      {/* Lesson Config Modal */}
+      {configScenario && (
+        <LessonConfig
+          scenario={configScenario}
+          onStart={handleStartLesson}
+          onCancel={() => setConfigScenario(null)}
+          isGenerating={isGenerating}
+        />
+      )}
+
       {/* Header */}
       <div className="p-4 border-b border-slate-700">
         <div className="max-w-4xl mx-auto">
@@ -104,7 +126,7 @@ export default function ListeningPage() {
             </h2>
           </div>
 
-          {/* Difficulty Selector */}
+          {/* Difficulty Selector (for filtering existing lessons) */}
           <div className="flex flex-wrap gap-2 mb-4">
             {(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as DifficultyLevel[]).map((level) => (
               <button
@@ -206,17 +228,16 @@ export default function ListeningPage() {
             /* Generate from Scenarios */
             <div>
               <p className="text-slate-400 text-sm mb-4">
-                Select a conversation scenario to generate a listening lesson based on its vocabulary and context.
+                Select a scenario to create a custom listening lesson. You'll be able to choose difficulty and exercise types.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
-                {filteredScenarios.map((scenario) => {
+                {allScenarios.map((scenario) => {
                   const existingLessons = lessons.filter((l) => l.scenarioId === scenario.id);
-                  const isGeneratingThis = isGenerating && selectedScenario?.id === scenario.id;
 
                   return (
                     <button
                       key={scenario.id}
-                      onClick={() => handleGenerateLesson(scenario)}
+                      onClick={() => handleSelectScenario(scenario)}
                       disabled={isGenerating}
                       className="text-left bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -236,13 +257,6 @@ export default function ListeningPage() {
                             <p className="text-xs text-emerald-400 mt-2">
                               {existingLessons.length} lesson(s) generated
                             </p>
-                          )}
-
-                          {isGeneratingThis && (
-                            <div className="mt-3 flex items-center gap-2 text-sm text-emerald-400">
-                              <span className="animate-spin">🔄</span>
-                              Generating lesson...
-                            </div>
                           )}
                         </div>
                       </div>

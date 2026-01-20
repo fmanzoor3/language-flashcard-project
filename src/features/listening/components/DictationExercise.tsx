@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useListeningStore, calculateTurkishSimilarity } from '../../../stores/listeningStore';
+import VocabularyQuickAdd from './VocabularyQuickAdd';
 import type { ListeningExercise, ExerciseProgress } from '../../../types';
 
 interface DictationExerciseProps {
@@ -22,6 +23,7 @@ export default function DictationExercise({
   const [result, setResult] = useState<{ correct: boolean; xpEarned: number } | null>(null);
   const [currentHintIndex, setCurrentHintIndex] = useState(-1);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -186,6 +188,18 @@ export default function DictationExercise({
             {showTranslation && (
               <p className="text-sm text-slate-300 mt-2 italic">{exercise.audioTextTranslation}</p>
             )}
+          </div>
+
+          {/* Vocabulary Quick Add */}
+          <div className="pt-3 border-t border-slate-700 mt-3">
+            <p className="text-xs text-slate-400 mb-2">Save vocabulary from this sentence:</p>
+            <VocabularyQuickAdd
+              text={exercise.targetText || exercise.audioText}
+              translation={exercise.audioTextTranslation}
+              addedWords={addedWords}
+              onWordAdded={(word) => setAddedWords((prev) => new Set(prev).add(word))}
+              className="text-slate-200"
+            />
           </div>
         </div>
       )}

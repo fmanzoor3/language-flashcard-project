@@ -5,10 +5,17 @@ import type {
   ListeningLesson,
   ListeningLessonProgress,
   ListeningExercise,
+  ListeningExerciseType,
   ExerciseProgress,
   DifficultyLevel,
   Scenario,
 } from '../types';
+
+export interface LessonGenerationOptions {
+  difficulty: DifficultyLevel;
+  exerciseTypes: ListeningExerciseType[];
+  exerciseCount: number;
+}
 
 // XP rewards for listening exercises
 const XP_DICTATION_CORRECT_FIRST_TRY = 20;
@@ -36,7 +43,7 @@ interface ListeningStore {
 
   // Actions
   loadLessons: () => Promise<void>;
-  generateLessonFromScenario: (scenario: Scenario) => Promise<ListeningLesson>;
+  generateLessonFromScenario: (scenario: Scenario, options?: LessonGenerationOptions) => Promise<ListeningLesson>;
   startLesson: (lessonId: string) => Promise<void>;
   submitDictationAnswer: (answer: string) => Promise<{ correct: boolean; xpEarned: number }>;
   submitComprehensionAnswer: (questionId: string, answer: string) => Promise<{ correct: boolean; xpEarned: number }>;
@@ -85,13 +92,13 @@ export const useListeningStore = create<ListeningStore>((set, get) => ({
     }
   },
 
-  generateLessonFromScenario: async (scenario: Scenario) => {
+  generateLessonFromScenario: async (scenario: Scenario, options?: LessonGenerationOptions) => {
     set({ isGenerating: true, error: null });
 
     try {
       // Import dynamically to avoid circular dependencies
       const { generateListeningLesson } = await import('../services/azure/listeningLessonService');
-      const lesson = await generateListeningLesson(scenario);
+      const lesson = await generateListeningLesson(scenario, options);
 
       // Save to database
       await db.listeningLessons.add(lesson);

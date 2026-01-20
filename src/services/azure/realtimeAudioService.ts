@@ -1,6 +1,9 @@
 /**
  * Azure OpenAI Realtime Audio Service
  * Handles text-to-speech via WebSocket connection
+ *
+ * Note: Azure OpenAI Realtime API requires specific WebSocket authentication.
+ * The API key must be passed via the 'api-key' query parameter for browser WebSocket connections.
  */
 
 export type VoiceOption = 'alloy' | 'echo' | 'shimmer';
@@ -22,12 +25,10 @@ function getRealtimeConfig(): RealtimeConfig {
   }
 
   // Convert HTTP endpoint to WebSocket endpoint
-  endpoint = endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
-  if (!endpoint.endsWith('/')) {
-    endpoint += '/';
-  }
+  // Remove trailing slash and protocol, then rebuild
+  endpoint = endpoint.replace(/\/$/, '').replace('https://', '').replace('http://', '');
 
-  return { endpoint, apiKey, deployment };
+  return { endpoint: `wss://${endpoint}`, apiKey, deployment };
 }
 
 interface AudioSession {
@@ -62,11 +63,23 @@ export async function synthesizeSpeech(
   const config = getRealtimeConfig();
   const apiVersion = '2024-10-01-preview';
 
-  // Build WebSocket URL
-  const wsUrl = `${config.endpoint}openai/realtime?api-version=${apiVersion}&deployment=${config.deployment}`;
+  // Build WebSocket URL with API key as query parameter (required for browser WebSocket)
+  // Azure OpenAI Realtime API accepts the api-key in the URL for browser clients
+  const wsUrl = `${config.endpoint}/openai/realtime?api-version=${apiVersion}&deployment=${config.deployment}&api-key=${encodeURIComponent(config.apiKey)}`;
 
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl, ['realtime', `openai-insecure-api-key.${config.apiKey}`]);
+    let ws: WebSocket;
+
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (err) {
+      const error = new Error(
+        'Failed to create WebSocket connection. Make sure the gpt-4o-mini-realtime-preview model is deployed in your Azure OpenAI resource.'
+      );
+      onError?.(error);
+      reject(error);
+      return;
+    }
 
     const audioContext = new AudioContext({ sampleRate: 24000 });
     const audioQueue: Float32Array[] = [];
@@ -113,11 +126,11 @@ export async function synthesizeSpeech(
 
       ws.send(JSON.stringify(conversationItem));
 
-      // Trigger response
+      // Trigger response with both text and audio modalities (required by Azure)
       const responseCreate = {
         type: 'response.create',
         response: {
-          modalities: ['audio'],
+          modalities: ['text', 'audio'],
         },
       };
 
@@ -173,7 +186,12 @@ export async function synthesizeSpeech(
     };
 
     ws.onerror = () => {
-      const error = new Error('WebSocket connection error');
+      const error = new Error(
+        'WebSocket connection failed. Possible causes:\n' +
+        '1. The gpt-4o-mini-realtime-preview model is not deployed in your Azure OpenAI resource\n' +
+        '2. The Realtime API may not be available in your Azure region\n' +
+        '3. Check your Azure OpenAI deployment settings in the Azure Portal'
+      );
       onError?.(error);
       reject(error);
     };
