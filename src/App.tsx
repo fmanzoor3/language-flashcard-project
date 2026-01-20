@@ -6,6 +6,7 @@ import { useFlashcardStore } from './stores/flashcardStore';
 import { useGameStore } from './stores/gameStore';
 import FlashcardsPage from './features/flashcards/components/FlashcardsPage';
 import ConversationsPage from './features/conversations/components/ConversationsPage';
+import ListeningPage from './features/listening/components/ListeningPage';
 import ProgressionPage from './features/game/components/ProgressionPage';
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
           <Routes>
             <Route path="/" element={<FlashcardsPage />} />
             <Route path="/conversations" element={<ConversationsPage />} />
+            <Route path="/listening" element={<ListeningPage />} />
             <Route path="/progression" element={<ProgressionPage />} />
           </Routes>
         </main>
@@ -110,6 +112,17 @@ function App() {
             >
               <span className="text-xl mb-1">💬</span>
               <span>Conversations</span>
+            </NavLink>
+            <NavLink
+              to="/listening"
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
+                  isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+                }`
+              }
+            >
+              <span className="text-xl mb-1">🎧</span>
+              <span>Listening</span>
             </NavLink>
             <NavLink
               to="/progression"

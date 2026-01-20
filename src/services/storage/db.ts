@@ -1,5 +1,15 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Flashcard, Conversation, ReviewSession, UserProgress, UserSettings, GameState, Scenario } from '../../types';
+import type {
+  Flashcard,
+  Conversation,
+  ReviewSession,
+  UserProgress,
+  UserSettings,
+  GameState,
+  Scenario,
+  ListeningLesson,
+  ListeningLessonProgress,
+} from '../../types';
 
 // Database schema for IndexedDB
 const db = new Dexie('TurkishLearningApp') as Dexie & {
@@ -10,6 +20,8 @@ const db = new Dexie('TurkishLearningApp') as Dexie & {
   userSettings: EntityTable<UserSettings & { id: string }, 'id'>;
   gameState: EntityTable<GameState & { id: string }, 'id'>;
   scenarios: EntityTable<Scenario, 'id'>;
+  listeningLessons: EntityTable<ListeningLesson, 'id'>;
+  listeningProgress: EntityTable<ListeningLessonProgress, 'id'>;
 };
 
 db.version(2).stores({
@@ -20,6 +32,18 @@ db.version(2).stores({
   userSettings: 'id',
   gameState: 'id',
   scenarios: 'id, type, isPreset',
+});
+
+db.version(3).stores({
+  flashcards: 'id, status, nextReviewDate, category, createdAt',
+  conversations: 'id, scenarioId, startedAt',
+  reviewSessions: 'id, startedAt',
+  userProgress: 'id',
+  userSettings: 'id',
+  gameState: 'id',
+  scenarios: 'id, type, isPreset',
+  listeningLessons: 'id, difficulty, scenarioId, createdAt',
+  listeningProgress: 'id, lessonId, startedAt, completedAt',
 });
 
 // Initialize default data if not exists

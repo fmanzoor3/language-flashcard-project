@@ -181,10 +181,72 @@ export interface Conversation {
   xpEarned: number;
 }
 
+// ============ Listening Lesson Types ============
+
+export type ListeningExerciseType = 'dictation' | 'comprehension';
+
+export interface ListeningLesson {
+  id: string;
+  title: string;
+  titleTurkish: string;
+  description: string;
+  difficulty: DifficultyLevel;
+  scenarioId?: string;           // Links to conversation scenario
+  vocabularyFocus: string[];
+  grammarFocus: string[];
+  estimatedMinutes: number;
+  exercises: ListeningExercise[];
+  createdAt: Date;
+  isGenerated: boolean;
+}
+
+export interface ListeningExercise {
+  id: string;
+  type: ListeningExerciseType;
+  order: number;
+  audioText: string;             // Text to be spoken
+  audioTextTranslation: string;
+  targetText?: string;           // For dictation: expected answer
+  acceptableVariants?: string[];
+  hints?: string[];
+  questions?: ComprehensionQuestion[];  // For comprehension
+  difficulty: DifficultyLevel;
+}
+
+export interface ComprehensionQuestion {
+  id: string;
+  questionText: string;
+  questionTranslation: string;
+  questionType: 'multiple-choice' | 'true-false';
+  options?: string[];
+  correctAnswer: string;
+  explanation?: string;
+}
+
+export interface ListeningLessonProgress {
+  id: string;
+  lessonId: string;
+  startedAt: Date;
+  completedAt?: Date;
+  exerciseProgress: ExerciseProgress[];
+  totalXPEarned: number;
+  accuracy: number;
+}
+
+export interface ExerciseProgress {
+  exerciseId: string;
+  completed: boolean;
+  attempts: number;
+  hintsUsed: number;
+  correct: boolean;
+  userAnswer?: string;
+  xpEarned: number;
+}
+
 // ============ XP & Level Types ============
 
 export interface XPEvent {
-  type: 'flashcard' | 'conversation' | 'crafting' | 'achievement' | 'streak';
+  type: 'flashcard' | 'conversation' | 'crafting' | 'achievement' | 'streak' | 'listening';
   amount: number;
   description: string;
   timestamp: Date;
