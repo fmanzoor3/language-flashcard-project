@@ -12,12 +12,15 @@ import {
   type ConversationOptions,
   type AssistSuggestion,
 } from '../services/azure/conversationService';
+import { assessConversation, calculateXPFromAssessment } from '../services/azure/assessmentService';
 import { useUserStore } from './userStore';
 import { useFlashcardStore } from './flashcardStore';
 import type {
   Scenario,
   Conversation,
   ConversationMessage,
+  ConversationAssessment,
+  VocabularySuggestion,
   DifficultyLevel,
 } from '../types';
 
@@ -43,6 +46,11 @@ interface ConversationStore {
   isLoadingAssist: boolean;
   usedAssistInSession: boolean;
 
+  // Assessment
+  currentAssessment: ConversationAssessment | null;
+  isAssessing: boolean;
+  showAssessmentModal: boolean;
+
   // Actions
   loadScenarios: () => Promise<void>;
   selectScenario: (scenario: Scenario) => void;
@@ -57,6 +65,12 @@ interface ConversationStore {
   clearAssist: () => void;
   clearError: () => void;
   reset: () => void;
+
+  // Assessment actions
+  runAssessment: () => Promise<void>;
+  addVocabSuggestionToFlashcards: (suggestion: VocabularySuggestion) => Promise<void>;
+  closeAssessmentModal: () => void;
+  dismissAssessment: () => void;
 }
 
 const XP_PER_MESSAGE = 5;
@@ -82,6 +96,11 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   assistSuggestions: [],
   isLoadingAssist: false,
   usedAssistInSession: false,
+
+  // Assessment
+  currentAssessment: null,
+  isAssessing: false,
+  showAssessmentModal: false,
 
   loadScenarios: async () => {
     // Load any custom scenarios from database
@@ -375,5 +394,115 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     assistSuggestions: [],
     isLoadingAssist: false,
     usedAssistInSession: false,
+    currentAssessment: null,
+    isAssessing: false,
+    showAssessmentModal: false,
   }),
+
+  runAssessment: async () => {
+    const { currentConversation, messages, selectedDifficulty, usedAssistInSession, currentScenario } = get();
+    if (!currentConversation || messages.length < 2) {
+      set({ error: 'Need at least one exchange to assess' });
+      return;
+    }
+
+    set({ isAssessing: true, error: null });
+
+    try {
+      const assessment = await assessConversation({
+        messages,
+        difficulty: selectedDifficulty,
+        usedAssist: usedAssistInSession || currentConversation.usedAssist || false,
+        conversationId: currentConversation.id,
+      });
+
+      // Save assessment to database
+      await db.assessments.add(assessment);
+
+      // Update conversation with assessment ID
+      const completedAt = new Date();
+      await db.conversations.update(currentConversation.id, {
+        completedAt,
+        assessmentId: assessment.id,
+      });
+
+      // Calculate and award XP
+      const xpEarned = calculateXPFromAssessment(assessment);
+      useUserStore.getState().addXP({
+        type: 'conversation',
+        amount: xpEarned,
+        description: `Conversation completed (${assessment.overallScore}% score)`,
+        timestamp: new Date(),
+      });
+
+      // Update total conversations completed
+      const progress = useUserStore.getState().progress;
+      if (progress) {
+        await useUserStore.getState().updateProgress({
+          totalConversationsCompleted: progress.totalConversationsCompleted + 1,
+        });
+      }
+
+      // Update scenario mastery based on assessment score
+      if (currentScenario && assessment.isMastered) {
+        await useUserStore.getState().updateScenarioMastery(
+          currentScenario.type,
+          selectedDifficulty,
+          true
+        );
+      }
+
+      set({
+        currentAssessment: assessment,
+        isAssessing: false,
+        showAssessmentModal: true,
+        currentConversation: {
+          ...currentConversation,
+          completedAt,
+          assessmentId: assessment.id,
+        },
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to assess conversation',
+        isAssessing: false,
+      });
+    }
+  },
+
+  addVocabSuggestionToFlashcards: async (suggestion: VocabularySuggestion) => {
+    set({ isLoading: true });
+
+    try {
+      await useFlashcardStore.getState().addCard(suggestion.turkish, suggestion.english, {
+        pronunciation: suggestion.pronunciation,
+        exampleSentence: suggestion.exampleSentence,
+        sourceScenarioId: get().currentScenario?.id,
+      });
+
+      set({ isLoading: false });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to add vocabulary',
+        isLoading: false,
+      });
+    }
+  },
+
+  closeAssessmentModal: () => {
+    set({
+      showAssessmentModal: false,
+      currentConversation: null,
+      currentScenario: null,
+      messages: [],
+      systemPrompt: null,
+      wordBank: [],
+      usedAssistInSession: false,
+      currentAssessment: null,
+    });
+  },
+
+  dismissAssessment: () => {
+    set({ showAssessmentModal: false });
+  },
 }));

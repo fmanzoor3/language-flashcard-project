@@ -4,6 +4,7 @@ import { useFlashcardStore } from '../../../stores/flashcardStore';
 import { useUserStore } from '../../../stores/userStore';
 import { isConfigured } from '../../../services/azure/openaiClient';
 import { getWordTranslation, type TranslationMode, type TranslationResult } from '../../../services/azure/conversationService';
+import ConversationAssessmentModal from './ConversationAssessmentModal';
 import type { Scenario, DifficultyLevel, ScenarioType } from '../../../types';
 import { MASTERY_TIER_STYLES } from '../../../types';
 
@@ -54,17 +55,18 @@ export default function ConversationsPage() {
     translationMode,
     assistSuggestions,
     isLoadingAssist,
+    isAssessing,
     loadScenarios,
     selectScenario,
     setDifficulty,
     setTranslationMode,
     startNewConversation,
     sendUserMessage,
-    endConversation,
     createCustomScenario,
     requestAssist,
     clearAssist,
     clearError,
+    runAssessment,
   } = useConversationStore();
 
   const addCard = useFlashcardStore((state) => state.addCard);
@@ -114,7 +116,8 @@ export default function ConversationsPage() {
   };
 
   const handleEndConversation = async () => {
-    await endConversation();
+    // Run assessment instead of just ending
+    await runAssessment();
   };
 
   const handleCreateCustomScenario = async () => {
@@ -257,6 +260,8 @@ export default function ConversationsPage() {
   if (currentConversation) {
     return (
       <div className="h-full flex flex-col">
+        {/* Assessment Modal */}
+        <ConversationAssessmentModal />
         {/* Conversation Header */}
         <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -268,12 +273,21 @@ export default function ConversationsPage() {
               <p className="text-xs text-slate-400">{currentScenario?.titleTurkish}</p>
             </div>
           </div>
-          <button
-            onClick={handleEndConversation}
-            className="text-sm text-slate-400 hover:text-white px-3 py-1 rounded-lg hover:bg-slate-700 transition-colors"
-          >
-            End Conversation
-          </button>
+          <div className="flex items-center gap-2">
+            {isAssessing && (
+              <div className="flex items-center gap-2 text-sm text-emerald-400">
+                <span className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                <span>Analyzing...</span>
+              </div>
+            )}
+            <button
+              onClick={handleEndConversation}
+              disabled={isAssessing || isStreaming}
+              className="text-sm text-slate-400 hover:text-white px-3 py-1 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAssessing ? 'Assessing...' : 'End & Review'}
+            </button>
+          </div>
         </div>
 
         {/* Messages */}

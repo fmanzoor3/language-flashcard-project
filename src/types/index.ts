@@ -181,7 +181,72 @@ export interface Conversation {
   completedAt?: Date;
   xpEarned: number;
   usedAssist?: boolean;
+  assessmentId?: string;
 }
+
+// ============ Conversation Assessment Types ============
+
+export type IssueCategory = 'grammar' | 'spelling' | 'vocabulary' | 'phrasing' | 'appropriateness';
+export type IssueSeverity = 'minor' | 'moderate' | 'major';
+export type VocabSuggestionReason = 'struggled' | 'new_vocabulary' | 'important_phrase';
+
+export interface ConversationIssue {
+  messageId: string;
+  category: IssueCategory;
+  severity: IssueSeverity;
+  originalText: string;
+  correctedText: string;
+  explanation: string;
+}
+
+export interface VocabularySuggestion {
+  turkish: string;
+  english: string;
+  reason: VocabSuggestionReason;
+  pronunciation?: string;
+  exampleSentence?: string;
+}
+
+export interface AssessmentScoreBreakdown {
+  grammar: number;        // 0-100
+  vocabulary: number;     // 0-100
+  appropriateness: number; // 0-100
+}
+
+export interface ConversationAssessment {
+  id: string;
+  conversationId: string;
+  overallScore: number;   // 0-100
+  isMastered: boolean;
+  breakdown: AssessmentScoreBreakdown;
+  issues: ConversationIssue[];
+  vocabularySuggestions: VocabularySuggestion[];
+  feedbackSummary: string;
+  improvementTips: string[];
+  difficulty: DifficultyLevel;
+  usedAssist: boolean;
+  createdAt: Date;
+}
+
+/** Mastery score thresholds by difficulty level */
+export const MASTERY_THRESHOLDS: Record<DifficultyLevel, number> = {
+  A1: 70,
+  A2: 70,
+  B1: 75,
+  B2: 75,
+  C1: 80,
+  C2: 80,
+};
+
+/** Score weights by difficulty level */
+export const SCORE_WEIGHTS: Record<DifficultyLevel, AssessmentScoreBreakdown> = {
+  A1: { grammar: 30, vocabulary: 40, appropriateness: 30 },
+  A2: { grammar: 35, vocabulary: 35, appropriateness: 30 },
+  B1: { grammar: 40, vocabulary: 30, appropriateness: 30 },
+  B2: { grammar: 45, vocabulary: 25, appropriateness: 30 },
+  C1: { grammar: 50, vocabulary: 20, appropriateness: 30 },
+  C2: { grammar: 50, vocabulary: 20, appropriateness: 30 },
+};
 
 // ============ Scenario Mastery Types ============
 
