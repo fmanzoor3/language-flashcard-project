@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { db } from '../services/storage/db';
 import { useUserStore } from './userStore';
+import { PRESET_SCENARIOS } from '../services/azure/conversationService';
 import type {
   ListeningLesson,
   ListeningLessonProgress,
@@ -9,6 +10,7 @@ import type {
   ExerciseProgress,
   DifficultyLevel,
   Scenario,
+  ScenarioType,
 } from '../types';
 
 export interface LessonGenerationOptions {
@@ -317,6 +319,13 @@ export const useListeningStore = create<ListeningStore>((set, get) => ({
       ? (correctExercises.length / currentLesson.exercises.length) * 100
       : 0;
 
+    // Check if any hints were used
+    const totalHintsUsed = currentProgress.exerciseProgress.reduce(
+      (sum, ep) => sum + ep.hintsUsed,
+      0
+    );
+    const completedWithoutHints = totalHintsUsed === 0 && accuracy === 100;
+
     // Add completion bonus
     let bonusXP = XP_LESSON_COMPLETE;
     if (accuracy === 100) {
@@ -343,6 +352,24 @@ export const useListeningStore = create<ListeningStore>((set, get) => ({
 
     // Update streak
     await useUserStore.getState().updateStreak();
+
+    // Update scenario mastery if linked to a scenario
+    if (currentLesson.scenarioId) {
+      // Look up the scenario to get its type
+      const allScenarios = PRESET_SCENARIOS;
+      const customScenarios = await db.scenarios?.toArray() || [];
+      const scenario = [...allScenarios, ...customScenarios].find(
+        (s) => s.id === currentLesson.scenarioId
+      );
+
+      if (scenario) {
+        await useUserStore.getState().updateScenarioMastery(
+          scenario.type as ScenarioType,
+          currentLesson.difficulty,
+          completedWithoutHints
+        );
+      }
+    }
 
     set({
       currentLesson: null,

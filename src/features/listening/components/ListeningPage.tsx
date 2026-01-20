@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useListeningStore } from '../../../stores/listeningStore';
 import { useConversationStore } from '../../../stores/conversationStore';
+import { useUserStore } from '../../../stores/userStore';
 import { isRealtimeAudioAvailable } from '../../../services/azure/realtimeAudioService';
 import LessonPlayer from './LessonPlayer';
 import LessonConfig, { type LessonConfigOptions } from './LessonConfig';
-import type { Scenario, DifficultyLevel, ListeningLesson } from '../../../types';
+import type { Scenario, DifficultyLevel, ListeningLesson, ScenarioType } from '../../../types';
+import { MASTERY_TIER_STYLES } from '../../../types';
 
 const DIFFICULTY_STYLES: Record<DifficultyLevel, string> = {
   A1: 'bg-green-500/20 text-green-400',
@@ -41,6 +43,7 @@ export default function ListeningPage() {
   } = useListeningStore();
 
   const { scenarios, loadScenarios } = useConversationStore();
+  const getScenarioMasteryTier = useUserStore((state) => state.getScenarioMasteryTier);
 
   const [view, setView] = useState<'lessons' | 'scenarios'>('lessons');
   const [configScenario, setConfigScenario] = useState<Scenario | null>(null);
@@ -233,22 +236,31 @@ export default function ListeningPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {allScenarios.map((scenario) => {
                   const existingLessons = lessons.filter((l) => l.scenarioId === scenario.id);
+                  const masteryTier = getScenarioMasteryTier(scenario.type as ScenarioType);
+                  const masteryStyles = MASTERY_TIER_STYLES[masteryTier];
 
                   return (
                     <button
                       key={scenario.id}
                       onClick={() => handleSelectScenario(scenario)}
                       disabled={isGenerating}
-                      className="text-left bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`text-left rounded-lg p-4 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:border-emerald-500/50 ${masteryStyles.bg} ${masteryStyles.border} ${masteryStyles.glow}`}
                     >
                       <div className="flex items-start gap-3">
                         <span className="text-2xl">{SCENARIO_EMOJIS[scenario.type] || '📝'}</span>
                         <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center justify-between gap-2 mb-1">
                             <h3 className="font-medium text-slate-100">{scenario.title}</h3>
-                            <span className={`px-2 py-0.5 rounded text-xs ${DIFFICULTY_STYLES[scenario.difficulty]}`}>
-                              {scenario.difficulty}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {masteryTier !== 'none' && (
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${masteryStyles.badge}`}>
+                                  {masteryStyles.label}
+                                </span>
+                              )}
+                              <span className={`px-2 py-0.5 rounded text-xs ${DIFFICULTY_STYLES[scenario.difficulty]}`}>
+                                {scenario.difficulty}
+                              </span>
+                            </div>
                           </div>
                           <p className="text-sm text-slate-400 mb-2">{scenario.titleTurkish}</p>
                           <p className="text-xs text-slate-500">{scenario.description}</p>

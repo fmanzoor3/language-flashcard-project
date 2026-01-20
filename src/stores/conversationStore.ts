@@ -41,6 +41,7 @@ interface ConversationStore {
   // Assist feature
   assistSuggestions: AssistSuggestion[];
   isLoadingAssist: boolean;
+  usedAssistInSession: boolean;
 
   // Actions
   loadScenarios: () => Promise<void>;
@@ -80,6 +81,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   // Assist feature
   assistSuggestions: [],
   isLoadingAssist: false,
+  usedAssistInSession: false,
 
   loadScenarios: async () => {
     // Load any custom scenarios from database
@@ -145,6 +147,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
         messages: [greetingMessage],
         startedAt: new Date(),
         xpEarned: 0,
+        usedAssist: false,
       };
 
       // Save to database
@@ -156,6 +159,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
         systemPrompt,
         wordBank: wordBank || [],
         isLoading: false,
+        usedAssistInSession: false,
       });
     } catch (error) {
       set({
@@ -238,7 +242,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   },
 
   endConversation: async () => {
-    const { currentConversation } = get();
+    const { currentConversation, currentScenario, selectedDifficulty, usedAssistInSession } = get();
     if (!currentConversation) return;
 
     const completedAt = new Date();
@@ -265,12 +269,23 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       });
     }
 
+    // Update scenario mastery
+    if (currentScenario) {
+      const completedWithoutAssist = !usedAssistInSession && !currentConversation.usedAssist;
+      await useUserStore.getState().updateScenarioMastery(
+        currentScenario.type,
+        selectedDifficulty,
+        completedWithoutAssist
+      );
+    }
+
     set({
       currentConversation: null,
       currentScenario: null,
       messages: [],
       systemPrompt: null,
       wordBank: [],
+      usedAssistInSession: false,
     });
   },
 
@@ -321,10 +336,16 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   },
 
   requestAssist: async () => {
-    const { messages, selectedDifficulty } = get();
+    const { messages, selectedDifficulty, currentConversation } = get();
     if (messages.length === 0) return;
 
-    set({ isLoadingAssist: true, assistSuggestions: [] });
+    set({ isLoadingAssist: true, assistSuggestions: [], usedAssistInSession: true });
+
+    // Update conversation to track assist usage
+    if (currentConversation) {
+      await db.conversations.update(currentConversation.id, { usedAssist: true });
+      set({ currentConversation: { ...currentConversation, usedAssist: true } });
+    }
 
     try {
       const suggestions = await getAssistSuggestions(messages, selectedDifficulty);
@@ -353,5 +374,6 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     streamingContent: '',
     assistSuggestions: [],
     isLoadingAssist: false,
+    usedAssistInSession: false,
   }),
 }));

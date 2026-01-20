@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useConversationStore } from '../../../stores/conversationStore';
 import { useFlashcardStore } from '../../../stores/flashcardStore';
+import { useUserStore } from '../../../stores/userStore';
 import { isConfigured } from '../../../services/azure/openaiClient';
 import { getWordTranslation, type TranslationMode, type TranslationResult } from '../../../services/azure/conversationService';
-import type { Scenario, DifficultyLevel } from '../../../types';
+import type { Scenario, DifficultyLevel, ScenarioType } from '../../../types';
+import { MASTERY_TIER_STYLES } from '../../../types';
 
 interface FlashcardSelection {
   text: string;
@@ -66,6 +68,7 @@ export default function ConversationsPage() {
   } = useConversationStore();
 
   const addCard = useFlashcardStore((state) => state.addCard);
+  const getScenarioMasteryTier = useUserStore((state) => state.getScenarioMasteryTier);
 
   const [userInput, setUserInput] = useState('');
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -555,40 +558,53 @@ export default function ConversationsPage() {
 
         {/* Scenario Grid */}
         <div className="grid gap-4 md:grid-cols-2">
-          {scenarios.map((scenario) => (
-            <button
-              key={scenario.id}
-              onClick={() => handleSelectScenario(scenario)}
-              className={`text-left p-4 rounded-xl border transition-all ${
-                currentScenario?.id === scenario.id
-                  ? 'bg-emerald-500/10 border-emerald-500/50'
-                  : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <span className="text-3xl">{SCENARIO_EMOJIS[scenario.type]}</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold">{scenario.title}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded ${DIFFICULTY_STYLES[scenario.difficulty]}`}>
-                      {scenario.difficulty}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-400 mt-1">{scenario.titleTurkish}</p>
-                  <p className="text-sm text-slate-500 mt-2">{scenario.description}</p>
-                  {scenario.vocabularyFocus && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {scenario.vocabularyFocus.slice(0, 4).map((word) => (
-                        <span key={word} className="text-xs bg-slate-700 px-2 py-0.5 rounded">
-                          {word}
+          {scenarios.map((scenario) => {
+            const masteryTier = getScenarioMasteryTier(scenario.type as ScenarioType);
+            const masteryStyles = MASTERY_TIER_STYLES[masteryTier];
+            const isSelected = currentScenario?.id === scenario.id;
+
+            return (
+              <button
+                key={scenario.id}
+                onClick={() => handleSelectScenario(scenario)}
+                className={`text-left p-4 rounded-xl border transition-all ${
+                  isSelected
+                    ? 'bg-emerald-500/10 border-emerald-500/50'
+                    : `${masteryStyles.bg} ${masteryStyles.border} ${masteryStyles.glow} hover:border-slate-500`
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">{SCENARIO_EMOJIS[scenario.type]}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-bold">{scenario.title}</h3>
+                      <div className="flex items-center gap-1.5">
+                        {masteryTier !== 'none' && (
+                          <span className={`text-xs px-2 py-0.5 rounded font-medium ${masteryStyles.badge}`}>
+                            {masteryStyles.label}
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded ${DIFFICULTY_STYLES[scenario.difficulty]}`}>
+                          {scenario.difficulty}
                         </span>
-                      ))}
+                      </div>
                     </div>
-                  )}
+                    <p className="text-sm text-slate-400 mt-1">{scenario.titleTurkish}</p>
+                    <p className="text-sm text-slate-500 mt-2">{scenario.description}</p>
+                    {scenario.vocabularyFocus && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {scenario.vocabularyFocus.slice(0, 4).map((word) => (
+                          <span key={word} className="text-xs bg-slate-700 px-2 py-0.5 rounded">
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         {/* Custom Scenario Button */}

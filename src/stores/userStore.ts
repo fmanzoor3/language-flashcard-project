@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { db } from '../services/storage/db';
-import type { UserProgress, UserSettings, XPEvent } from '../types';
+import type {
+  UserProgress,
+  UserSettings,
+  XPEvent,
+  ScenarioType,
+  DifficultyLevel,
+  ScenarioMasteryData,
+  MasteryTier,
+} from '../types';
+import { DIFFICULTY_TO_MASTERY_TIER, isHigherDifficulty } from '../types';
 
 // XP required per level using formula: 100 * level^1.8 (smoothed for early levels)
 function xpRequiredForLevel(level: number): number {
@@ -32,6 +41,15 @@ interface UserStore {
   updateSettings: (settings: Partial<UserSettings>) => Promise<void>;
   getXPToNextLevel: () => number;
   getXPProgress: () => { current: number; required: number; percentage: number };
+
+  // Scenario Mastery
+  updateScenarioMastery: (
+    scenarioType: ScenarioType,
+    difficulty: DifficultyLevel,
+    completedWithoutAssist: boolean
+  ) => Promise<void>;
+  getScenarioMastery: (scenarioType: ScenarioType) => ScenarioMasteryData | null;
+  getScenarioMasteryTier: (scenarioType: ScenarioType) => MasteryTier;
 }
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -150,6 +168,80 @@ export const useUserStore = create<UserStore>((set, get) => ({
     const percentage = Math.min((current / required) * 100, 100);
 
     return { current, required, percentage };
+  },
+
+  updateScenarioMastery: async (
+    scenarioType: ScenarioType,
+    difficulty: DifficultyLevel,
+    completedWithoutAssist: boolean
+  ) => {
+    const { progress } = get();
+    if (!progress) return;
+
+    const now = new Date().toISOString();
+    const currentMastery = progress.scenarioMastery || {};
+    const scenarioData = currentMastery[scenarioType] || {
+      highestMastered: null,
+      masteredAt: null,
+      attempts: {},
+    };
+
+    // Update attempt data for this difficulty
+    const currentAttempt = scenarioData.attempts[difficulty] || {
+      totalAttempts: 0,
+      masteredCount: 0,
+      lastAttempt: now,
+    };
+
+    const updatedAttempt = {
+      totalAttempts: currentAttempt.totalAttempts + 1,
+      masteredCount: completedWithoutAssist
+        ? currentAttempt.masteredCount + 1
+        : currentAttempt.masteredCount,
+      lastAttempt: now,
+    };
+
+    // Check if this is a new highest mastery
+    const newHighestMastered =
+      completedWithoutAssist && isHigherDifficulty(difficulty, scenarioData.highestMastered)
+        ? difficulty
+        : scenarioData.highestMastered;
+
+    const updatedScenarioData: ScenarioMasteryData = {
+      highestMastered: newHighestMastered,
+      masteredAt: newHighestMastered !== scenarioData.highestMastered ? now : scenarioData.masteredAt,
+      attempts: {
+        ...scenarioData.attempts,
+        [difficulty]: updatedAttempt,
+      },
+    };
+
+    const updatedMastery = {
+      ...currentMastery,
+      [scenarioType]: updatedScenarioData,
+    };
+
+    const updatedProgress: UserProgress = {
+      ...progress,
+      scenarioMastery: updatedMastery,
+    };
+
+    await db.userProgress.put({ ...updatedProgress, id: 'default' });
+    set({ progress: updatedProgress });
+  },
+
+  getScenarioMastery: (scenarioType: ScenarioType) => {
+    const { progress } = get();
+    if (!progress?.scenarioMastery) return null;
+    return progress.scenarioMastery[scenarioType] || null;
+  },
+
+  getScenarioMasteryTier: (scenarioType: ScenarioType) => {
+    const { progress } = get();
+    if (!progress?.scenarioMastery) return 'none';
+    const mastery = progress.scenarioMastery[scenarioType];
+    if (!mastery?.highestMastered) return 'none';
+    return DIFFICULTY_TO_MASTERY_TIER[mastery.highestMastered];
   },
 }));
 
