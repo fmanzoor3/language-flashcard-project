@@ -161,46 +161,57 @@ export default function FlashcardsPage() {
 
             {/* Flashcard */}
             <div
-              className="flex-1 flex items-center justify-center cursor-pointer perspective-1000"
+              className="flex-1 flex items-center justify-center cursor-pointer perspective-1000 min-h-[250px] md:min-h-[350px]"
               onClick={() => setIsFlipped(!isFlipped)}
             >
               <div
-                className={`relative w-full max-w-md aspect-[3/2] transition-transform duration-500 transform-style-3d ${
+                className={`relative w-full max-w-xl h-full max-h-[450px] min-h-[250px] transition-transform duration-500 transform-style-3d ${
                   isFlipped ? 'rotate-y-180' : ''
                 }`}
               >
-                {/* Front */}
-                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-6 backface-hidden border border-slate-700">
-                  <span className="text-3xl md:text-4xl font-bold text-center">
+                {/* Front - Turkish word */}
+                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden border border-slate-700">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider mb-4">
+                    Turkish
+                  </span>
+                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-center">
                     {currentCard.front}
                   </span>
                   {currentCard.pronunciation && (
-                    <span className="text-slate-400 mt-2">
+                    <span className="text-slate-400 mt-4 text-lg">
                       [{currentCard.pronunciation}]
                     </span>
                   )}
-                  <span className="text-slate-500 text-sm mt-4">
-                    Tap to reveal
+                  <span className="text-slate-500 text-sm mt-8">
+                    Tap to reveal translation
                   </span>
                 </div>
 
-                {/* Back */}
-                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-6 backface-hidden rotate-y-180 border border-emerald-500/30">
-                  <span className="text-3xl md:text-4xl font-bold text-center text-emerald-400">
+                {/* Back - English translation */}
+                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180 border border-emerald-500/30">
+                  <span className="text-xs text-emerald-500 uppercase tracking-wider mb-4">
+                    English
+                  </span>
+                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-center text-emerald-400">
                     {currentCard.back}
                   </span>
                   {currentCard.exampleSentence && (
-                    <div className="mt-4 text-center">
-                      <p className="text-slate-300 text-sm italic">
+                    <div className="mt-6 text-center max-w-sm">
+                      <p className="text-slate-300 text-base italic">
                         "{currentCard.exampleSentence}"
                       </p>
                       {currentCard.exampleTranslation && (
-                        <p className="text-slate-500 text-xs mt-1">
+                        <p className="text-slate-500 text-sm mt-2">
                           {currentCard.exampleTranslation}
                         </p>
                       )}
                     </div>
                   )}
+                  <div className="mt-6 text-sm">
+                    <span className="text-slate-400">{currentCard.front}</span>
+                    <span className="mx-2 text-slate-600">→</span>
+                    <span className="text-emerald-400">{currentCard.back}</span>
+                  </div>
                 </div>
               </div>
             </div>
