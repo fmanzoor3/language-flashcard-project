@@ -12,51 +12,44 @@ export default function FlashcardsPage() {
   const dueCount = getDueCards().length;
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: 'var(--color-ottoman-navy)' }}>
+    <div className="h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="px-4 shrink-0 border-b" style={{ backgroundColor: 'var(--color-ottoman-surface)', borderColor: 'rgba(212, 165, 116, 0.1)' }}>
+      <div className="bg-slate-800 border-b border-slate-700 px-4 shrink-0">
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab('practice')}
-            className={`px-5 py-3.5 font-medium text-sm transition-all duration-200 relative ${
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
               activeTab === 'practice'
-                ? 'text-[var(--color-gold)]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                ? 'text-emerald-400'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <span className="flex items-center gap-2">
               <span>Practice</span>
               {dueCount > 0 && (
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                  style={{
-                    backgroundColor: 'rgba(20, 184, 166, 0.15)',
-                    color: 'var(--color-turquoise-light)',
-                    border: '1px solid rgba(20, 184, 166, 0.3)'
-                  }}
-                >
+                <span className="bg-emerald-500/20 text-emerald-400 text-xs px-1.5 py-0.5 rounded-full">
                   {dueCount}
                 </span>
               )}
             </span>
             {activeTab === 'practice' && (
-              <div className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }} />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
             )}
           </button>
           <button
             onClick={() => setActiveTab('cards')}
-            className={`px-5 py-3.5 font-medium text-sm transition-all duration-200 relative ${
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
               activeTab === 'cards'
-                ? 'text-[var(--color-gold)]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                ? 'text-emerald-400'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <span className="flex items-center gap-2">
               <span>My Cards</span>
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>({cards.length})</span>
+              <span className="text-slate-500 text-xs">({cards.length})</span>
             </span>
             {activeTab === 'cards' && (
-              <div className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg, transparent, var(--color-gold), transparent)' }} />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
             )}
           </button>
         </div>

@@ -67,50 +67,50 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
     : null;
 
   return (
-    <div className="h-full flex flex-col md:flex-row overflow-hidden" style={{ backgroundColor: 'var(--color-ottoman-navy)' }}>
+    <div className="h-full flex flex-col md:flex-row overflow-hidden">
       {/* Flashcard Section */}
       <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0 md:h-full overflow-hidden">
         {!currentSession ? (
           // Session Start / Empty State
-          <div className="flex-1 flex flex-col items-center justify-center animate-fadeIn">
+          <div className="flex-1 flex flex-col items-center justify-center">
             {!hasCards ? (
               <div className="text-center">
-                <p className="text-6xl mb-6">📝</p>
-                <h2 className="font-display text-2xl mb-3" style={{ color: 'var(--color-text-primary)' }}>No flashcards yet!</h2>
-                <p className="mb-8" style={{ color: 'var(--color-text-muted)' }}>
+                <p className="text-6xl mb-4">📝</p>
+                <h2 className="text-xl font-bold mb-2">No flashcards yet!</h2>
+                <p className="text-slate-400 mb-6">
                   Add some Turkish vocabulary to start learning
                 </p>
                 <button
                   onClick={onSwitchToCards}
-                  className="ottoman-btn ottoman-btn-primary font-semibold"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-3 rounded-lg transition-colors"
                 >
                   Add Your First Card
                 </button>
               </div>
             ) : !hasDueCards ? (
               <div className="text-center">
-                <p className="text-6xl mb-6 gold-shimmer">🎉</p>
-                <h2 className="font-display text-2xl mb-3" style={{ color: 'var(--color-text-primary)' }}>All caught up!</h2>
-                <p className="mb-8" style={{ color: 'var(--color-text-muted)' }}>
+                <p className="text-6xl mb-4">🎉</p>
+                <h2 className="text-xl font-bold mb-2">All caught up!</h2>
+                <p className="text-slate-400 mb-6">
                   No cards due for review. Add more or come back later!
                 </p>
                 <button
                   onClick={onSwitchToCards}
-                  className="ottoman-btn ottoman-btn-primary font-semibold"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-3 rounded-lg transition-colors"
                 >
                   Manage Cards
                 </button>
               </div>
             ) : (
               <div className="text-center">
-                <p className="text-6xl mb-6">📚</p>
-                <h2 className="font-display text-2xl mb-3" style={{ color: 'var(--color-text-primary)' }}>Ready to study?</h2>
-                <p className="mb-8" style={{ color: 'var(--color-text-muted)' }}>
-                  You have <span style={{ color: 'var(--color-turquoise-light)' }}>{dueCards.length}</span> card{dueCards.length !== 1 ? 's' : ''} due for review
+                <p className="text-6xl mb-4">📚</p>
+                <h2 className="text-xl font-bold mb-2">Ready to study?</h2>
+                <p className="text-slate-400 mb-6">
+                  You have {dueCards.length} card{dueCards.length !== 1 ? 's' : ''} due for review
                 </p>
                 <button
                   onClick={handleStartSession}
-                  className="ottoman-btn ottoman-btn-gold font-bold text-lg px-10 py-4 pulse-gold"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-8 py-4 rounded-lg text-lg transition-colors"
                 >
                   Start Review
                 </button>
@@ -119,19 +119,18 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
           </div>
         ) : !currentCard ? (
           // Session Complete
-          <div className="flex-1 flex flex-col items-center justify-center animate-scaleIn">
-            <p className="text-6xl mb-6 gold-shimmer">🏆</p>
-            <h2 className="font-display text-2xl mb-3" style={{ color: 'var(--color-gold)' }}>Session Complete!</h2>
-            <p className="mb-2" style={{ color: 'var(--color-text-muted)' }}>
-              Cards reviewed: <span style={{ color: 'var(--color-text-primary)' }}>{currentSession.cardsReviewed}</span>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <p className="text-6xl mb-4">🏆</p>
+            <h2 className="text-xl font-bold mb-2">Session Complete!</h2>
+            <p className="text-slate-400 mb-2">
+              Cards reviewed: {currentSession.cardsReviewed}
             </p>
-            <p className="font-semibold mb-8" style={{ color: 'var(--color-turquoise-light)' }}>
+            <p className="text-emerald-400 font-medium mb-6">
               +{currentSession.xpEarned} XP earned
             </p>
             <button
               onClick={handleEndSession}
-              className="ottoman-btn font-medium"
-              style={{ backgroundColor: 'var(--color-ottoman-elevated)', border: '1px solid rgba(212, 165, 116, 0.2)' }}
+              className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-lg transition-colors"
             >
               Finish Session
             </button>
@@ -141,13 +140,12 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
           <div className="flex-1 flex flex-col">
             {/* Progress indicator */}
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                Card <span style={{ color: 'var(--color-gold)' }}>{(dueCards.findIndex(c => c.id === currentCard.id) + 1) || 1}</span> of {dueCards.length}
+              <span className="text-sm text-slate-400">
+                Card {(dueCards.findIndex(c => c.id === currentCard.id) + 1) || 1} of {dueCards.length}
               </span>
               <button
                 onClick={handleEndSession}
-                className="text-sm transition-colors"
-                style={{ color: 'var(--color-text-muted)' }}
+                className="text-sm text-slate-400 hover:text-slate-200"
               >
                 End Session
               </button>
@@ -164,47 +162,47 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
                 }`}
               >
                 {/* Front - Turkish word */}
-                <div className="absolute inset-0 flashcard-front rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden">
-                  <span className="text-xs uppercase tracking-widest mb-4" style={{ color: 'var(--color-gold)' }}>
+                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden border border-slate-700">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider mb-4">
                     Turkish
                   </span>
-                  <span className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-center" style={{ color: 'var(--color-text-primary)' }}>
+                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-center">
                     {currentCard.front}
                   </span>
                   {currentCard.pronunciation && (
-                    <span className="mt-4 text-lg font-display-light" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="text-slate-400 mt-4 text-lg">
                       [{currentCard.pronunciation}]
                     </span>
                   )}
-                  <span className="text-sm mt-8" style={{ color: 'var(--color-text-muted)' }}>
+                  <span className="text-slate-500 text-sm mt-8">
                     Tap to reveal translation
                   </span>
                 </div>
 
                 {/* Back - English translation */}
-                <div className="absolute inset-0 flashcard-back rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180">
-                  <span className="text-xs uppercase tracking-widest mb-4" style={{ color: 'var(--color-turquoise-light)' }}>
+                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180 border border-emerald-500/30">
+                  <span className="text-xs text-emerald-500 uppercase tracking-wider mb-4">
                     English
                   </span>
-                  <span className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-center text-turquoise-gradient">
+                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-center text-emerald-400">
                     {currentCard.back}
                   </span>
                   {currentCard.exampleSentence && (
                     <div className="mt-6 text-center max-w-sm">
-                      <p className="text-base font-display-light" style={{ color: 'var(--color-text-secondary)' }}>
+                      <p className="text-slate-300 text-base italic">
                         "{currentCard.exampleSentence}"
                       </p>
                       {currentCard.exampleTranslation && (
-                        <p className="text-sm mt-2" style={{ color: 'var(--color-text-muted)' }}>
+                        <p className="text-slate-500 text-sm mt-2">
                           {currentCard.exampleTranslation}
                         </p>
                       )}
                     </div>
                   )}
                   <div className="mt-6 text-sm">
-                    <span style={{ color: 'var(--color-text-muted)' }}>{currentCard.front}</span>
-                    <span className="mx-2" style={{ color: 'var(--color-gold)', opacity: 0.5 }}>→</span>
-                    <span style={{ color: 'var(--color-turquoise-light)' }}>{currentCard.back}</span>
+                    <span className="text-slate-400">{currentCard.front}</span>
+                    <span className="mx-2 text-slate-600">→</span>
+                    <span className="text-emerald-400">{currentCard.back}</span>
                   </div>
                 </div>
               </div>
@@ -215,37 +213,37 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
               <div className="grid grid-cols-4 gap-2 mt-4">
                 <button
                   onClick={() => handleResponse('again')}
-                  className="response-btn response-btn-again flex flex-col items-center"
+                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 transition-colors"
                 >
-                  <span className="font-medium" style={{ color: 'var(--color-again)' }}>Again</span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <span className="font-medium text-red-400">Again</span>
+                  <span className="text-xs text-slate-400">
                     {intervalPreviews.again}
                   </span>
                 </button>
                 <button
                   onClick={() => handleResponse('hard')}
-                  className="response-btn response-btn-hard flex flex-col items-center"
+                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 transition-colors"
                 >
-                  <span className="font-medium" style={{ color: 'var(--color-hard)' }}>Hard</span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <span className="font-medium text-orange-400">Hard</span>
+                  <span className="text-xs text-slate-400">
                     {intervalPreviews.hard}
                   </span>
                 </button>
                 <button
                   onClick={() => handleResponse('good')}
-                  className="response-btn response-btn-good flex flex-col items-center"
+                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 transition-colors"
                 >
-                  <span className="font-medium" style={{ color: 'var(--color-good)' }}>Good</span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <span className="font-medium text-green-400">Good</span>
+                  <span className="text-xs text-slate-400">
                     {intervalPreviews.good}
                   </span>
                 </button>
                 <button
                   onClick={() => handleResponse('easy')}
-                  className="response-btn response-btn-easy flex flex-col items-center"
+                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 transition-colors"
                 >
-                  <span className="font-medium" style={{ color: 'var(--color-easy)' }}>Easy</span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <span className="font-medium text-blue-400">Easy</span>
+                  <span className="text-xs text-slate-400">
                     {intervalPreviews.easy}
                   </span>
                 </button>
@@ -256,10 +254,7 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
       </div>
 
       {/* Game Section */}
-      <div
-        className="h-64 md:h-full md:w-1/2 lg:w-2/5 border-t md:border-t-0 md:border-l p-4 flex flex-col shrink-0 ottoman-pattern"
-        style={{ backgroundColor: 'var(--color-ottoman-surface)', borderColor: 'rgba(212, 165, 116, 0.1)' }}
-      >
+      <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 p-4 flex flex-col shrink-0">
         {/* Island Scene */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
           {/* Character */}
@@ -281,7 +276,7 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
               <span className="text-2xl">
                 {LOCATION_ICONS[currentAction.location]}
               </span>
-              <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="text-sm text-slate-400 mt-1">
                 {currentAction.animationState === 'walking' && 'Walking...'}
                 {currentAction.animationState === 'searching' && 'Searching...'}
                 {currentAction.animationState === 'found' && lootInfo && (
@@ -290,7 +285,7 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
                   </span>
                 )}
                 {currentAction.animationState === 'failed' && (
-                  <span style={{ color: 'var(--color-text-muted)' }}>Nothing found...</span>
+                  <span className="text-slate-500">Nothing found...</span>
                 )}
               </p>
             </div>
@@ -324,30 +319,29 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
         </div>
 
         {/* Mini Inventory */}
-        <div className="border-t pt-3 mt-2" style={{ borderColor: 'rgba(212, 165, 116, 0.1)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-gold)', opacity: 0.7 }}>Recent Loot</span>
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        <div className="border-t border-slate-700 pt-2 mt-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-slate-400">Recent Loot</span>
+            <span className="text-xs text-slate-500">
               Level {progress?.level || 1}
             </span>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto">
+          <div className="flex gap-1 overflow-x-auto">
             {inventory.slice(0, 8).map((item) => {
               const resource = RESOURCES[item.resourceId];
               return (
                 <div
                   key={item.resourceId}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-sm"
-                  style={{ backgroundColor: 'var(--color-ottoman-elevated)', border: '1px solid rgba(212, 165, 116, 0.1)' }}
+                  className="flex items-center gap-1 bg-slate-700/50 px-2 py-1 rounded text-sm"
                   title={resource?.name}
                 >
                   <span>{resource?.emoji}</span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{item.quantity}</span>
+                  <span className="text-xs">{item.quantity}</span>
                 </div>
               );
             })}
             {inventory.length === 0 && (
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="text-xs text-slate-500">
                 Review flashcards to gather resources!
               </span>
             )}

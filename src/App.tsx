@@ -28,11 +28,10 @@ function App() {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center ottoman-pattern" style={{ backgroundColor: 'var(--color-ottoman-navy)' }}>
-        <div className="text-center animate-fadeIn">
-          <div className="text-5xl mb-6 gold-shimmer">🕌</div>
-          <p className="font-display text-2xl text-gold-gradient mb-2">Turkish Adventure</p>
-          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading your journey...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">🌀</div>
+          <p className="text-slate-400">Loading...</p>
         </div>
       </div>
     );
@@ -42,46 +41,37 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="h-screen flex flex-col overflow-hidden tile-pattern" style={{ backgroundColor: 'var(--color-ottoman-navy)', color: 'var(--color-text-primary)' }}>
+      <div className="h-screen flex flex-col bg-slate-900 text-slate-100 overflow-hidden">
         {/* Header */}
-        <header className="px-4 py-3 border-b relative" style={{ backgroundColor: 'var(--color-ottoman-surface)', borderColor: 'rgba(212, 165, 116, 0.15)' }}>
+        <header className="bg-slate-800 border-b border-slate-700 px-4 py-3">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🕌</span>
-              <h1 className="font-display text-xl text-gold-gradient tracking-wide">
-                Turkish Adventure
-              </h1>
-            </div>
+            <h1 className="text-xl font-bold text-emerald-400">
+              🇹🇷 Turkish Adventure
+            </h1>
 
             {/* Level & XP */}
             <div className="flex items-center gap-4">
-              {/* Level Badge */}
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Level</span>
-                <span className="level-badge text-sm font-bold px-2.5 py-1 rounded" style={{ color: 'var(--color-ottoman-navy)' }}>
+                <span className="text-sm text-slate-400">Level</span>
+                <span className="bg-emerald-500 text-white text-sm font-bold px-2 py-0.5 rounded">
                   {progress?.level || 1}
                 </span>
               </div>
-
-              {/* XP Bar */}
               <div className="hidden sm:flex items-center gap-2">
-                <div className="xp-bar w-28 h-2.5">
+                <div className="w-24 h-2 bg-slate-700 rounded-full overflow-hidden">
                   <div
-                    className="xp-bar-fill h-full"
+                    className="h-full bg-emerald-500 transition-all duration-300"
                     style={{ width: `${xpProgress.percentage}%` }}
                   />
                 </div>
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  {xpProgress.current}/{xpProgress.required}
+                <span className="text-xs text-slate-400">
+                  {xpProgress.current}/{xpProgress.required} XP
                 </span>
               </div>
-
-              {/* Streak */}
               {progress?.currentStreak ? (
-                <div className="flex items-center gap-1.5 streak-flame">
-                  <span className="text-lg">🔥</span>
-                  <span className="text-sm font-semibold" style={{ color: '#f97316' }}>{progress.currentStreak}</span>
+                <div className="flex items-center gap-1 text-orange-400">
+                  <span>🔥</span>
+                  <span className="text-sm font-medium">{progress.currentStreak}</span>
                 </div>
               ) : null}
             </div>
@@ -99,83 +89,51 @@ function App() {
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="border-t" style={{ backgroundColor: 'var(--color-ottoman-surface)', borderColor: 'rgba(212, 165, 116, 0.15)' }}>
+        <nav className="bg-slate-800 border-t border-slate-700">
           <div className="max-w-6xl mx-auto flex">
             <NavLink
               to="/"
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center py-3 text-sm transition-all duration-200 relative ${
-                  isActive ? '' : 'hover:opacity-80'
+                `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
+                  isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--color-gold)' : 'var(--color-text-muted)'
-              })}
             >
-              {({ isActive }) => (
-                <>
-                  <span className="text-xl mb-1">📚</span>
-                  <span className={isActive ? 'font-medium' : ''}>Flashcards</span>
-                  {isActive && <div className="nav-active-indicator" />}
-                </>
-              )}
+              <span className="text-xl mb-1">📚</span>
+              <span>Flashcards</span>
             </NavLink>
             <NavLink
               to="/conversations"
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center py-3 text-sm transition-all duration-200 relative ${
-                  isActive ? '' : 'hover:opacity-80'
+                `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
+                  isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--color-gold)' : 'var(--color-text-muted)'
-              })}
             >
-              {({ isActive }) => (
-                <>
-                  <span className="text-xl mb-1">💬</span>
-                  <span className={isActive ? 'font-medium' : ''}>Conversations</span>
-                  {isActive && <div className="nav-active-indicator" />}
-                </>
-              )}
+              <span className="text-xl mb-1">💬</span>
+              <span>Conversations</span>
             </NavLink>
             <NavLink
               to="/listening"
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center py-3 text-sm transition-all duration-200 relative ${
-                  isActive ? '' : 'hover:opacity-80'
+                `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
+                  isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--color-gold)' : 'var(--color-text-muted)'
-              })}
             >
-              {({ isActive }) => (
-                <>
-                  <span className="text-xl mb-1">🎧</span>
-                  <span className={isActive ? 'font-medium' : ''}>Listening</span>
-                  {isActive && <div className="nav-active-indicator" />}
-                </>
-              )}
+              <span className="text-xl mb-1">🎧</span>
+              <span>Listening</span>
             </NavLink>
             <NavLink
               to="/progression"
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center py-3 text-sm transition-all duration-200 relative ${
-                  isActive ? '' : 'hover:opacity-80'
+                `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
+                  isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--color-gold)' : 'var(--color-text-muted)'
-              })}
             >
-              {({ isActive }) => (
-                <>
-                  <span className="text-xl mb-1">🏝️</span>
-                  <span className={isActive ? 'font-medium' : ''}>Island</span>
-                  {isActive && <div className="nav-active-indicator" />}
-                </>
-              )}
+              <span className="text-xl mb-1">🏝️</span>
+              <span>Island</span>
             </NavLink>
           </div>
         </nav>
