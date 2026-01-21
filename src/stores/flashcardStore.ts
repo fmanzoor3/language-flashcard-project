@@ -14,6 +14,7 @@ interface FlashcardStore {
   // Actions
   loadCards: () => Promise<void>;
   addCard: (front: string, back: string, options?: Partial<Omit<Flashcard, 'id' | 'front' | 'back'>>) => Promise<Flashcard>;
+  updateCard: (id: string, updates: Partial<Omit<Flashcard, 'id'>>) => Promise<void>;
   deleteCard: (id: string) => Promise<void>;
   reviewCard: (response: SM2Response) => Promise<void>;
   startSession: () => void;
@@ -46,6 +47,18 @@ export const useFlashcardStore = create<FlashcardStore>((set, get) => ({
     set((state) => ({ cards: [...state.cards, card] }));
 
     return card;
+  },
+
+  updateCard: async (id, updates) => {
+    const { cards } = get();
+    const existingCard = cards.find((c) => c.id === id);
+    if (!existingCard) return;
+
+    const updatedCard = { ...existingCard, ...updates };
+    await db.flashcards.put(updatedCard);
+    set((state) => ({
+      cards: state.cards.map((c) => (c.id === id ? updatedCard : c)),
+    }));
   },
 
   deleteCard: async (id) => {

@@ -5,6 +5,7 @@ import { useUserStore } from '../../../stores/userStore';
 import { getIntervalPreviews } from '../services/sm2Algorithm';
 import { RESOURCES } from '../../game/data/resources';
 import { getRarityColor, getRarityGlow } from '../../game/engine/LootSystem';
+import FlashcardManager from './FlashcardManager';
 import type { SM2Response } from '../../../types';
 
 const LOCATION_ICONS: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function FlashcardsPage() {
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [showAddCard, setShowAddCard] = useState(false);
+  const [showManager, setShowManager] = useState(false);
   const [newFront, setNewFront] = useState('');
   const [newBack, setNewBack] = useState('');
 
@@ -260,14 +262,28 @@ export default function FlashcardsPage() {
           </div>
         )}
 
-        {/* Add Card Button (floating) */}
+        {/* Floating Action Buttons */}
         {!showAddCard && (
-          <button
-            onClick={() => setShowAddCard(true)}
-            className="fixed bottom-20 right-4 md:absolute md:bottom-4 md:right-4 w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-lg flex items-center justify-center text-2xl transition-colors"
-          >
-            +
-          </button>
+          <div className="fixed bottom-20 right-4 md:absolute md:bottom-4 md:right-4 flex flex-col gap-2">
+            {cards.length > 0 && (
+              <button
+                onClick={() => setShowManager(true)}
+                className="w-12 h-12 bg-slate-700 hover:bg-slate-600 rounded-full shadow-lg flex items-center justify-center text-xl transition-colors"
+                title="Manage Cards"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={() => setShowAddCard(true)}
+              className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-lg flex items-center justify-center text-2xl transition-colors"
+              title="Add Card"
+            >
+              +
+            </button>
+          </div>
         )}
       </div>
 
@@ -417,6 +433,9 @@ export default function FlashcardsPage() {
           </div>
         </div>
       )}
+
+      {/* Flashcard Manager Modal */}
+      {showManager && <FlashcardManager onClose={() => setShowManager(false)} />}
     </div>
   );
 }
