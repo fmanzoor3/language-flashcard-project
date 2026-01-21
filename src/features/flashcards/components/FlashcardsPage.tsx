@@ -1,441 +1,68 @@
-import { useState, useEffect } from 'react';
-import { useFlashcardStore } from '../../../stores/flashcardStore';
-import { useGameStore } from '../../../stores/gameStore';
-import { useUserStore } from '../../../stores/userStore';
-import { getIntervalPreviews } from '../services/sm2Algorithm';
-import { RESOURCES } from '../../game/data/resources';
-import { getRarityColor, getRarityGlow } from '../../game/engine/LootSystem';
+import { useState } from 'react';
+import FlashcardPractice from './FlashcardPractice';
 import FlashcardManager from './FlashcardManager';
-import type { SM2Response } from '../../../types';
+import { useFlashcardStore } from '../../../stores/flashcardStore';
 
-const LOCATION_ICONS: Record<string, string> = {
-  tree: '🌳',
-  bush: '🌿',
-  beach: '🏖️',
-  sea: '🌊',
-};
+type FlashcardTab = 'practice' | 'cards';
 
 export default function FlashcardsPage() {
-  const {
-    getDueCards,
-    getCurrentCard,
-    currentSession,
-    startSession,
-    endSession,
-    reviewCard,
-    addCard,
-    cards,
-  } = useFlashcardStore();
+  const [activeTab, setActiveTab] = useState<FlashcardTab>('practice');
+  const { getDueCards, cards } = useFlashcardStore();
 
-  const { currentAction, inventory } = useGameStore();
-  const progress = useUserStore((state) => state.progress);
-
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [showAddCard, setShowAddCard] = useState(false);
-  const [showManager, setShowManager] = useState(false);
-  const [newFront, setNewFront] = useState('');
-  const [newBack, setNewBack] = useState('');
-
-  const dueCards = getDueCards();
-  const currentCard = getCurrentCard();
-  const hasCards = cards.length > 0;
-  const hasDueCards = dueCards.length > 0;
-
-  useEffect(() => {
-    setIsFlipped(false);
-  }, [currentCard?.id]);
-
-  const handleResponse = async (response: SM2Response) => {
-    if (!currentCard) return;
-    setIsFlipped(false);
-    await reviewCard(response);
-  };
-
-  const handleStartSession = () => {
-    startSession();
-  };
-
-  const handleEndSession = async () => {
-    await endSession();
-  };
-
-  const handleAddCard = async () => {
-    if (!newFront.trim() || !newBack.trim()) return;
-    await addCard(newFront.trim(), newBack.trim());
-    setNewFront('');
-    setNewBack('');
-    setShowAddCard(false);
-  };
-
-  const intervalPreviews = currentCard
-    ? getIntervalPreviews(currentCard)
-    : null;
-
-  // Get loot display info
-  const lootInfo = currentAction?.result?.resourceId
-    ? RESOURCES[currentAction.result.resourceId]
-    : null;
+  const dueCount = getDueCards().length;
 
   return (
-    <div className="h-full flex flex-col md:flex-row overflow-hidden">
-      {/* Flashcard Section */}
-      <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0 md:h-full overflow-hidden">
-        {!currentSession ? (
-          // Session Start / Empty State
-          <div className="flex-1 flex flex-col items-center justify-center">
-            {!hasCards ? (
-              <div className="text-center">
-                <p className="text-6xl mb-4">📝</p>
-                <h2 className="text-xl font-bold mb-2">No flashcards yet!</h2>
-                <p className="text-slate-400 mb-6">
-                  Add some Turkish vocabulary to start learning
-                </p>
-                <button
-                  onClick={() => setShowAddCard(true)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-3 rounded-lg transition-colors"
-                >
-                  Add Your First Card
-                </button>
-              </div>
-            ) : !hasDueCards ? (
-              <div className="text-center">
-                <p className="text-6xl mb-4">🎉</p>
-                <h2 className="text-xl font-bold mb-2">All caught up!</h2>
-                <p className="text-slate-400 mb-6">
-                  No cards due for review. Add more or come back later!
-                </p>
-                <button
-                  onClick={() => setShowAddCard(true)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-3 rounded-lg transition-colors"
-                >
-                  Add More Cards
-                </button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-6xl mb-4">📚</p>
-                <h2 className="text-xl font-bold mb-2">Ready to study?</h2>
-                <p className="text-slate-400 mb-6">
-                  You have {dueCards.length} card{dueCards.length !== 1 ? 's' : ''} due for review
-                </p>
-                <button
-                  onClick={handleStartSession}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-8 py-4 rounded-lg text-lg transition-colors"
-                >
-                  Start Review
-                </button>
-              </div>
-            )}
-          </div>
-        ) : !currentCard ? (
-          // Session Complete
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <p className="text-6xl mb-4">🏆</p>
-            <h2 className="text-xl font-bold mb-2">Session Complete!</h2>
-            <p className="text-slate-400 mb-2">
-              Cards reviewed: {currentSession.cardsReviewed}
-            </p>
-            <p className="text-emerald-400 font-medium mb-6">
-              +{currentSession.xpEarned} XP earned
-            </p>
-            <button
-              onClick={handleEndSession}
-              className="bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-lg transition-colors"
-            >
-              Finish Session
-            </button>
-          </div>
-        ) : (
-          // Active Review
-          <div className="flex-1 flex flex-col">
-            {/* Progress indicator */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-slate-400">
-                Card {(dueCards.findIndex(c => c.id === currentCard.id) + 1) || 1} of {dueCards.length}
-              </span>
-              <button
-                onClick={handleEndSession}
-                className="text-sm text-slate-400 hover:text-slate-200"
-              >
-                End Session
-              </button>
-            </div>
-
-            {/* Flashcard */}
-            <div
-              className="flex-1 flex items-center justify-center cursor-pointer perspective-1000 min-h-[250px] md:min-h-[350px]"
-              onClick={() => setIsFlipped(!isFlipped)}
-            >
-              <div
-                className={`relative w-full max-w-xl h-full max-h-[450px] min-h-[250px] transition-transform duration-500 transform-style-3d ${
-                  isFlipped ? 'rotate-y-180' : ''
-                }`}
-              >
-                {/* Front - Turkish word */}
-                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden border border-slate-700">
-                  <span className="text-xs text-slate-500 uppercase tracking-wider mb-4">
-                    Turkish
-                  </span>
-                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-center">
-                    {currentCard.front}
-                  </span>
-                  {currentCard.pronunciation && (
-                    <span className="text-slate-400 mt-4 text-lg">
-                      [{currentCard.pronunciation}]
-                    </span>
-                  )}
-                  <span className="text-slate-500 text-sm mt-8">
-                    Tap to reveal translation
-                  </span>
-                </div>
-
-                {/* Back - English translation */}
-                <div className="absolute inset-0 bg-slate-800 rounded-2xl shadow-xl flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180 border border-emerald-500/30">
-                  <span className="text-xs text-emerald-500 uppercase tracking-wider mb-4">
-                    English
-                  </span>
-                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-center text-emerald-400">
-                    {currentCard.back}
-                  </span>
-                  {currentCard.exampleSentence && (
-                    <div className="mt-6 text-center max-w-sm">
-                      <p className="text-slate-300 text-base italic">
-                        "{currentCard.exampleSentence}"
-                      </p>
-                      {currentCard.exampleTranslation && (
-                        <p className="text-slate-500 text-sm mt-2">
-                          {currentCard.exampleTranslation}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <div className="mt-6 text-sm">
-                    <span className="text-slate-400">{currentCard.front}</span>
-                    <span className="mx-2 text-slate-600">→</span>
-                    <span className="text-emerald-400">{currentCard.back}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Response Buttons */}
-            {isFlipped && intervalPreviews && (
-              <div className="grid grid-cols-4 gap-2 mt-4">
-                <button
-                  onClick={() => handleResponse('again')}
-                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 transition-colors"
-                >
-                  <span className="font-medium text-red-400">Again</span>
-                  <span className="text-xs text-slate-400">
-                    {intervalPreviews.again}
-                  </span>
-                </button>
-                <button
-                  onClick={() => handleResponse('hard')}
-                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 transition-colors"
-                >
-                  <span className="font-medium text-orange-400">Hard</span>
-                  <span className="text-xs text-slate-400">
-                    {intervalPreviews.hard}
-                  </span>
-                </button>
-                <button
-                  onClick={() => handleResponse('good')}
-                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 transition-colors"
-                >
-                  <span className="font-medium text-green-400">Good</span>
-                  <span className="text-xs text-slate-400">
-                    {intervalPreviews.good}
-                  </span>
-                </button>
-                <button
-                  onClick={() => handleResponse('easy')}
-                  className="flex flex-col items-center py-3 px-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 transition-colors"
-                >
-                  <span className="font-medium text-blue-400">Easy</span>
-                  <span className="text-xs text-slate-400">
-                    {intervalPreviews.easy}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Floating Action Buttons */}
-        {!showAddCard && (
-          <div className="fixed bottom-20 right-4 md:absolute md:bottom-4 md:right-4 flex flex-col gap-2">
-            {cards.length > 0 && (
-              <button
-                onClick={() => setShowManager(true)}
-                className="w-12 h-12 bg-slate-700 hover:bg-slate-600 rounded-full shadow-lg flex items-center justify-center text-xl transition-colors"
-                title="Manage Cards"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-              </button>
-            )}
-            <button
-              onClick={() => setShowAddCard(true)}
-              className="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-lg flex items-center justify-center text-2xl transition-colors"
-              title="Add Card"
-            >
-              +
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Game Section */}
-      <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 p-4 flex flex-col shrink-0">
-        {/* Island Scene */}
-        <div className="flex-1 flex flex-col items-center justify-center relative">
-          {/* Character */}
-          <div
-            className={`text-6xl transition-all duration-500 ${
-              currentAction?.animationState === 'walking'
-                ? 'animate-bounce'
-                : currentAction?.animationState === 'searching'
-                ? 'animate-pulse'
-                : ''
+    <div className="h-full flex flex-col">
+      {/* Tab Navigation */}
+      <div className="bg-slate-800 border-b border-slate-700 px-4 shrink-0">
+        <div className="flex gap-1">
+          <button
+            onClick={() => setActiveTab('practice')}
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === 'practice'
+                ? 'text-emerald-400'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            🧑
-          </div>
-
-          {/* Current Action Display */}
-          {currentAction && (
-            <div className="mt-2 text-center">
-              <span className="text-2xl">
-                {LOCATION_ICONS[currentAction.location]}
-              </span>
-              <p className="text-sm text-slate-400 mt-1">
-                {currentAction.animationState === 'walking' && 'Walking...'}
-                {currentAction.animationState === 'searching' && 'Searching...'}
-                {currentAction.animationState === 'found' && lootInfo && (
-                  <span className={getRarityColor(lootInfo.rarity)}>
-                    Found {currentAction.result?.quantity}x {lootInfo.emoji} {lootInfo.name}!
-                  </span>
-                )}
-                {currentAction.animationState === 'failed' && (
-                  <span className="text-slate-500">Nothing found...</span>
-                )}
-              </p>
-            </div>
-          )}
-
-          {/* Loot Animation */}
-          {currentAction?.animationState === 'found' && lootInfo && (
-            <div
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-4xl animate-bounce ${getRarityGlow(
-                lootInfo.rarity
-              )}`}
-            >
-              {lootInfo.emoji}
-            </div>
-          )}
-
-          {/* Location Icons (when idle) */}
-          {!currentAction && currentSession && (
-            <div className="flex gap-4 mt-4">
-              {Object.entries(LOCATION_ICONS).map(([loc, icon]) => (
-                <div
-                  key={loc}
-                  className="text-2xl opacity-50"
-                  title={loc}
-                >
-                  {icon}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Mini Inventory */}
-        <div className="border-t border-slate-700 pt-2 mt-2">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-slate-400">Recent Loot</span>
-            <span className="text-xs text-slate-500">
-              Level {progress?.level || 1}
+            <span className="flex items-center gap-2">
+              <span>Practice</span>
+              {dueCount > 0 && (
+                <span className="bg-emerald-500/20 text-emerald-400 text-xs px-1.5 py-0.5 rounded-full">
+                  {dueCount}
+                </span>
+              )}
             </span>
-          </div>
-          <div className="flex gap-1 overflow-x-auto">
-            {inventory.slice(0, 8).map((item) => {
-              const resource = RESOURCES[item.resourceId];
-              return (
-                <div
-                  key={item.resourceId}
-                  className="flex items-center gap-1 bg-slate-700/50 px-2 py-1 rounded text-sm"
-                  title={resource?.name}
-                >
-                  <span>{resource?.emoji}</span>
-                  <span className="text-xs">{item.quantity}</span>
-                </div>
-              );
-            })}
-            {inventory.length === 0 && (
-              <span className="text-xs text-slate-500">
-                Review flashcards to gather resources!
-              </span>
+            {activeTab === 'practice' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
             )}
-          </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('cards')}
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === 'cards'
+                ? 'text-emerald-400'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span>My Cards</span>
+              <span className="text-slate-500 text-xs">({cards.length})</span>
+            </span>
+            {activeTab === 'cards' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Add Card Modal */}
-      {showAddCard && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Flashcard</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">
-                  Turkish (Front)
-                </label>
-                <input
-                  type="text"
-                  value={newFront}
-                  onChange={(e) => setNewFront(e.target.value)}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  placeholder="e.g., Merhaba"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">
-                  English (Back)
-                </label>
-                <input
-                  type="text"
-                  value={newBack}
-                  onChange={(e) => setNewBack(e.target.value)}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  placeholder="e.g., Hello"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowAddCard(false)}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddCard}
-                disabled={!newFront.trim() || !newBack.trim()}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2 rounded-lg transition-colors"
-              >
-                Add Card
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Flashcard Manager Modal */}
-      {showManager && <FlashcardManager onClose={() => setShowManager(false)} />}
+      {/* Tab Content */}
+      <div className="flex-1 min-h-0">
+        {activeTab === 'practice' ? (
+          <FlashcardPractice onSwitchToCards={() => setActiveTab('cards')} />
+        ) : (
+          <FlashcardManager />
+        )}
+      </div>
     </div>
   );
 }
