@@ -3,12 +3,29 @@ import { useGameStore } from '../../../stores/gameStore';
 import { useUserStore } from '../../../stores/userStore';
 import { RESOURCES, CRAFTING_RECIPES, getRaftRecipes, getAvailableRecipes } from '../data/resources';
 import { getRarityColor } from '../engine/LootSystem';
+import { IslandView, PetManager } from './island';
+import { TOOL_INFO } from '../data/toolEffects';
 import type { CraftingRecipe } from '../../../types';
 
 export default function ProgressionPage() {
-  const { inventory, craftedItems, raftProgress, craftItem, canCraft, getInventoryCount, getRaftProgressPercentage, hasCompletedGame } = useGameStore();
+  const {
+    inventory,
+    craftedItems,
+    craftedTools,
+    raftProgress,
+    craftItem,
+    canCraft,
+    getInventoryCount,
+    getRaftProgressPercentage,
+    hasCompletedGame,
+    currentAction,
+    activePet,
+    unlockedPets,
+    unlockedLocations,
+    setActivePet,
+  } = useGameStore();
   const progress = useUserStore((state) => state.progress);
-  const [activeTab, setActiveTab] = useState<'inventory' | 'crafting' | 'raft'>('inventory');
+  const [activeTab, setActiveTab] = useState<'island' | 'inventory' | 'crafting' | 'raft' | 'pets'>('island');
   const [craftingMessage, setCraftingMessage] = useState<string | null>(null);
 
   const level = progress?.level || 1;
@@ -17,9 +34,12 @@ export default function ProgressionPage() {
   const raftProgressPercent = getRaftProgressPercentage();
 
   const handleCraft = async (recipe: CraftingRecipe) => {
-    const success = await craftItem(recipe.id);
-    if (success) {
-      setCraftingMessage(`Crafted ${recipe.name}!`);
+    const result = await craftItem(recipe.id);
+    if (result.success) {
+      const message = result.savedMaterials
+        ? `Crafted ${recipe.name}! 🐵 Monkey saved your materials!`
+        : `Crafted ${recipe.name}!`;
+      setCraftingMessage(message);
       setTimeout(() => setCraftingMessage(null), 2000);
     }
   };
@@ -97,7 +117,17 @@ export default function ProgressionPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('island')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'island'
+                ? 'bg-emerald-500 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            🏝️ Island
+          </button>
           <button
             onClick={() => setActiveTab('inventory')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -128,12 +158,112 @@ export default function ProgressionPage() {
           >
             🛶 Raft Parts
           </button>
+          <button
+            onClick={() => setActiveTab('pets')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'pets'
+                ? 'bg-emerald-500 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            🐾 Pets {unlockedPets.length > 0 && `(${unlockedPets.length})`}
+          </button>
         </div>
 
         {/* Crafting Message */}
         {craftingMessage && (
           <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/50 rounded-lg text-center text-emerald-400 animate-pulse">
             {craftingMessage}
+          </div>
+        )}
+
+        {/* Island Tab */}
+        {activeTab === 'island' && (
+          <div className="space-y-6">
+            {/* Island Visualization */}
+            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+              <div className="aspect-video max-h-[400px]">
+                <IslandView
+                  currentAction={currentAction}
+                  activePet={activePet}
+                  unlockedLocations={unlockedLocations}
+                />
+              </div>
+            </div>
+
+            {/* Active Bonuses */}
+            {(craftedTools.length > 0 || activePet) && (
+              <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+                <h3 className="font-bold mb-3 text-slate-300">Active Bonuses</h3>
+                <div className="space-y-2">
+                  {craftedTools.map((toolId) => {
+                    const info = TOOL_INFO[toolId];
+                    return (
+                      <div
+                        key={toolId}
+                        className="flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-400 px-3 py-2 rounded-lg"
+                      >
+                        <span>{info.emoji}</span>
+                        <span>{info.name}:</span>
+                        <span className="text-emerald-300">{info.description}</span>
+                      </div>
+                    );
+                  })}
+                  {activePet && (
+                    <div className="flex items-center gap-2 text-sm bg-indigo-500/10 text-indigo-400 px-3 py-2 rounded-lg">
+                      <span>{activePet === 'crab' ? '🦀' : activePet === 'parrot' ? '🦜' : activePet === 'monkey' ? '🐵' : '🐬'}</span>
+                      <span>Pet Bonus:</span>
+                      <span className="text-indigo-300">
+                        {activePet === 'crab' && 'Auto-gathers shells every 5 reviews'}
+                        {activePet === 'parrot' && '+5% rare drop chance'}
+                        {activePet === 'monkey' && '10% chance to save crafting materials'}
+                        {activePet === 'dolphin' && '2x fish from sea'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-800 rounded-lg p-3 text-center border border-slate-700">
+                <p className="text-2xl">🌳</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {unlockedLocations.length}/4 Locations
+                </p>
+              </div>
+              <div className="bg-slate-800 rounded-lg p-3 text-center border border-slate-700">
+                <p className="text-2xl">🔧</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {craftedTools.length}/3 Tools
+                </p>
+              </div>
+              <div className="bg-slate-800 rounded-lg p-3 text-center border border-slate-700">
+                <p className="text-2xl">🐾</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {unlockedPets.length}/4 Pets
+                </p>
+              </div>
+              <div className="bg-slate-800 rounded-lg p-3 text-center border border-slate-700">
+                <p className="text-2xl">📦</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {inventory.reduce((sum, i) => sum + i.quantity, 0)} Items
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pets Tab */}
+        {activeTab === 'pets' && (
+          <div className="bg-slate-800 rounded-xl border border-slate-700">
+            <PetManager
+              unlockedPets={unlockedPets}
+              activePet={activePet}
+              currentLevel={level}
+              onSetActivePet={setActivePet}
+            />
           </div>
         )}
 

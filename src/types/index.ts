@@ -119,11 +119,14 @@ export interface LootResult {
 export interface GameState {
   inventory: InventoryItem[];
   craftedItems: string[];
+  craftedTools: ToolType[];
   unlockedLocations: LocationType[];
-  unlockedPets: string[];
-  activePet: string | null;
+  unlockedPets: PetType[];
+  activePet: PetType | null;
+  petStates: Partial<Record<PetType, PetState>>;
   raftProgress: RaftProgress;
   currentAction: PendingAction | null;
+  autoGatherQueue: InventoryItem[];
 }
 
 export interface RaftProgress {
@@ -136,9 +139,94 @@ export interface RaftProgress {
 
 export interface PendingAction {
   location: LocationType;
-  animationState: 'idle' | 'walking' | 'searching' | 'found' | 'failed';
+  animationState: AnimationState;
   result: LootResult | null;
+  characterPosition?: CharacterPosition;
+  petAnimation?: PetAnimationState;
 }
+
+// ============ Pet Types ============
+
+export type PetType = 'crab' | 'parrot' | 'monkey' | 'dolphin';
+export type PetAbilityType = 'auto_gather' | 'rare_drop_bonus' | 'crafting_helper' | 'fishing_bonus';
+
+export interface Pet {
+  id: PetType;
+  name: string;
+  emoji: string;
+  unlockLevel: number;
+  description: string;
+  ability: PetAbility;
+}
+
+export interface PetAbility {
+  type: PetAbilityType;
+  description: string;
+  value: number;
+  affectedLocations?: LocationType[];
+  affectedCategories?: ResourceCategory[];
+}
+
+export interface PetState {
+  petId: PetType;
+  unlockedAt: Date;
+  autoGatherAccumulated?: number;
+  lastAutoGather?: Date;
+}
+
+export interface PetAnimationState {
+  petId: PetType;
+  state: 'idle' | 'following' | 'helping' | 'celebrating';
+}
+
+// ============ Tool Effect Types ============
+
+export type ToolType = 'stoneAxe' | 'fishingRod' | 'basket';
+export type ToolEffectType = 'quantity_bonus' | 'rarity_upgrade' | 'category_bonus';
+
+export interface ToolEffect {
+  toolId: ToolType;
+  effectType: ToolEffectType;
+  value: number;
+  affectedLocations?: LocationType[];
+  affectedCategories?: ResourceCategory[];
+  affectedRarities?: RarityTier[];
+}
+
+// ============ Animation Types ============
+
+export type AnimationState = 'idle' | 'walking' | 'searching' | 'found' | 'failed' | 'celebrating';
+
+export interface CharacterPosition {
+  x: number; // 0-100 percentage
+  y: number; // 0-100 percentage
+}
+
+export interface LootPopupData {
+  resourceId: string;
+  quantity: number;
+  rarity: RarityTier;
+  position: CharacterPosition;
+  bonusText?: string;
+}
+
+// Location positions for island visualization
+export const LOCATION_POSITIONS: Record<LocationType, CharacterPosition> = {
+  tree: { x: 70, y: 25 },
+  bush: { x: 30, y: 35 },
+  beach: { x: 50, y: 70 },
+  sea: { x: 20, y: 80 },
+};
+
+export const IDLE_POSITION: CharacterPosition = { x: 50, y: 50 };
+
+// Pet unlock levels
+export const PET_UNLOCK_LEVELS: Record<PetType, number> = {
+  crab: 5,
+  parrot: 9,
+  monkey: 12,
+  dolphin: 15,
+};
 
 // ============ Conversation Types ============
 

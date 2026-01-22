@@ -61,6 +61,31 @@ db.version(4).stores({
   assessments: 'id, conversationId, difficulty, createdAt',
 });
 
+// Version 5: Add pet and tool tracking to game state
+db.version(5).stores({
+  flashcards: 'id, status, nextReviewDate, category, createdAt',
+  conversations: 'id, scenarioId, startedAt, assessmentId',
+  reviewSessions: 'id, startedAt',
+  userProgress: 'id',
+  userSettings: 'id',
+  gameState: 'id',
+  scenarios: 'id, type, isPreset',
+  listeningLessons: 'id, difficulty, scenarioId, createdAt',
+  listeningProgress: 'id, lessonId, startedAt, completedAt',
+  assessments: 'id, conversationId, difficulty, createdAt',
+}).upgrade(async (tx) => {
+  // Migrate existing game state to include new fields
+  const gameStates = await tx.table('gameState').toArray();
+  for (const state of gameStates) {
+    await tx.table('gameState').put({
+      ...state,
+      craftedTools: state.craftedTools || [],
+      petStates: state.petStates || {},
+      autoGatherQueue: state.autoGatherQueue || [],
+    });
+  }
+});
+
 // Initialize default data if not exists
 export async function initializeDatabase() {
   const progressCount = await db.userProgress.count();
@@ -95,9 +120,11 @@ export async function initializeDatabase() {
       id: 'default',
       inventory: [],
       craftedItems: [],
+      craftedTools: [],
       unlockedLocations: ['tree'],
       unlockedPets: [],
       activePet: null,
+      petStates: {},
       raftProgress: {
         rope: false,
         sailCloth: false,
@@ -106,6 +133,7 @@ export async function initializeDatabase() {
         raft: false,
       },
       currentAction: null,
+      autoGatherQueue: [],
     });
   }
 }

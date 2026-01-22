@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { db } from '../services/storage/db';
 import { calculateLoot, pickRandomLocation } from '../features/game/engine/LootSystem';
 import { RESOURCES, CRAFTING_RECIPES, LOCATION_UNLOCKS } from '../features/game/data/resources';
+import { PETS, getNewlyUnlockedPets } from '../features/game/data/pets';
+import { calculateToolBonuses } from '../features/game/data/toolEffects';
 import { useUserStore } from './userStore';
 import type {
   GameState,
@@ -11,7 +13,19 @@ import type {
   LocationType,
   PendingAction,
   CraftingRecipe,
+  PetType,
+  PetState,
+  Pet,
+  ToolType,
+  LootResult,
 } from '../types';
+import { LOCATION_POSITIONS, IDLE_POSITION } from '../types';
+
+// Extended loot result with bonus info
+interface EnhancedLootResult extends LootResult {
+  appliedBonuses?: string[];
+  wasRarityUpgraded?: boolean;
+}
 
 interface GameStore extends GameState {
   isLoading: boolean;
@@ -21,9 +35,16 @@ interface GameStore extends GameState {
   performAction: (response: SM2Response) => Promise<GameAction>;
   addToInventory: (resourceId: string, quantity: number) => Promise<void>;
   removeFromInventory: (resourceId: string, quantity: number) => Promise<boolean>;
-  craftItem: (recipeId: string) => Promise<boolean>;
+  craftItem: (recipeId: string) => Promise<{ success: boolean; savedMaterials?: boolean }>;
   setCurrentAction: (action: PendingAction | null) => void;
   saveState: () => Promise<void>;
+
+  // Pet actions
+  unlockPet: (petId: PetType) => Promise<void>;
+  setActivePet: (petId: PetType | null) => Promise<void>;
+  processCrabAutoGather: () => Promise<boolean>;
+  checkPetUnlocks: (level: number) => Promise<PetType[]>;
+  clearAutoGatherQueue: () => void;
 
   // Getters
   getInventoryCount: (resourceId: string) => number;
@@ -31,14 +52,20 @@ interface GameStore extends GameState {
   getUnlockedLocations: () => LocationType[];
   getRaftProgressPercentage: () => number;
   hasCompletedGame: () => boolean;
+  hasTool: (toolId: ToolType) => boolean;
+  getCraftedTools: () => ToolType[];
+  getActivePet: () => Pet | null;
+  getUnlockedPetsList: () => Pet[];
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   inventory: [],
   craftedItems: [],
+  craftedTools: [],
   unlockedLocations: ['tree'],
   unlockedPets: [],
   activePet: null,
+  petStates: {},
   raftProgress: {
     rope: false,
     sailCloth: false,
@@ -47,6 +74,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     raft: false,
   },
   currentAction: null,
+  autoGatherQueue: [],
   isLoading: true,
 
   loadGameState: async () => {
@@ -56,10 +84,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({
         inventory: state.inventory,
         craftedItems: state.craftedItems,
+        craftedTools: state.craftedTools || [],
         unlockedLocations: state.unlockedLocations,
-        unlockedPets: state.unlockedPets,
-        activePet: state.activePet,
+        unlockedPets: state.unlockedPets as PetType[],
+        activePet: state.activePet as PetType | null,
+        petStates: state.petStates || {},
         raftProgress: state.raftProgress,
+        autoGatherQueue: state.autoGatherQueue || [],
         currentAction: null,
         isLoading: false,
       });
@@ -71,16 +102,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   performAction: async (response: SM2Response): Promise<GameAction> => {
     const userStore = useUserStore.getState();
     const level = userStore.progress?.level || 1;
+    const { craftedTools, activePet } = get();
 
     // Pick a random location from unlocked ones
     const location = pickRandomLocation(level);
 
-    // Set walking animation
+    // Set walking animation with position
     set({
       currentAction: {
         location,
         animationState: 'walking',
         result: null,
+        characterPosition: LOCATION_POSITIONS[location],
+        petAnimation: activePet ? { petId: activePet, state: 'following' } : undefined,
       },
     });
 
@@ -93,21 +127,85 @@ export const useGameStore = create<GameStore>((set, get) => ({
         location,
         animationState: 'searching',
         result: null,
+        characterPosition: LOCATION_POSITIONS[location],
+        petAnimation: activePet ? { petId: activePet, state: 'helping' } : undefined,
       },
     });
 
     // Simulate searching time
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Calculate loot
-    const lootResult = calculateLoot(response, location);
+    // Calculate base loot
+    let lootResult: EnhancedLootResult = calculateLoot(response, location);
+
+    // Apply parrot bonus (rare drop bonus) BEFORE calculating loot
+    // This is already factored into calculateLoot via the response probabilities
+    // But parrot adds an extra 5% chance for rare/veryRare/legendary
+    if (activePet === 'parrot' && lootResult.resourceId && lootResult.rarity === 'common') {
+      // Roll for parrot bonus to upgrade to rare
+      if (Math.random() < 0.05) {
+        lootResult = { ...lootResult, rarity: 'rare' };
+      }
+    }
+
+    // Apply dolphin bonus (2x fish from sea)
+    if (activePet === 'dolphin' && location === 'sea' && lootResult.resourceId) {
+      const resource = RESOURCES[lootResult.resourceId];
+      if (resource && resource.category === 'food') {
+        lootResult = {
+          ...lootResult,
+          quantity: lootResult.quantity * 2,
+          appliedBonuses: [...(lootResult.appliedBonuses || []), '🐬 Dolphin: 2x fish!'],
+        };
+      }
+    }
+
+    // Apply tool bonuses
+    if (lootResult.resourceId && lootResult.rarity) {
+      const resource = RESOURCES[lootResult.resourceId];
+      if (resource) {
+        const toolBonus = calculateToolBonuses(
+          craftedTools,
+          location,
+          resource.category,
+          lootResult.quantity,
+          lootResult.rarity
+        );
+
+        lootResult = {
+          ...lootResult,
+          quantity: toolBonus.finalQuantity,
+          rarity: toolBonus.finalRarity,
+          appliedBonuses: [
+            ...(lootResult.appliedBonuses || []),
+            ...toolBonus.appliedBonuses,
+          ],
+          wasRarityUpgraded: toolBonus.wasRarityUpgraded,
+        };
+      }
+    }
+
+    // Process crab auto-gather
+    if (activePet === 'crab') {
+      await get().processCrabAutoGather();
+    }
+
+    // Determine animation state based on result
+    const isLegendary = lootResult.rarity === 'legendary';
+    const animState = lootResult.resourceId
+      ? (isLegendary ? 'celebrating' : 'found')
+      : 'failed';
 
     // Set result animation
     set({
       currentAction: {
         location,
-        animationState: lootResult.resourceId ? 'found' : 'failed',
+        animationState: animState,
         result: lootResult,
+        characterPosition: LOCATION_POSITIONS[location],
+        petAnimation: activePet
+          ? { petId: activePet, state: animState === 'found' || animState === 'celebrating' ? 'celebrating' : 'idle' }
+          : undefined,
       },
     });
 
@@ -130,10 +228,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       timestamp: new Date(),
     };
 
-    // Clear action after delay
+    // Clear action after delay and return to idle position
     setTimeout(() => {
-      set({ currentAction: null });
-    }, 1500);
+      set({
+        currentAction: {
+          location,
+          animationState: 'idle',
+          result: null,
+          characterPosition: IDLE_POSITION,
+          petAnimation: activePet ? { petId: activePet, state: 'idle' } : undefined,
+        },
+      });
+    }, 2000);
 
     return gameAction;
   },
@@ -187,35 +293,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return true;
   },
 
-  craftItem: async (recipeId: string): Promise<boolean> => {
+  craftItem: async (recipeId: string): Promise<{ success: boolean; savedMaterials?: boolean }> => {
     const recipe = CRAFTING_RECIPES.find((r) => r.id === recipeId);
-    if (!recipe) return false;
+    if (!recipe) return { success: false };
 
     const userStore = useUserStore.getState();
     const level = userStore.progress?.level || 1;
 
     // Check level requirement
-    if (level < recipe.requiredLevel) return false;
+    if (level < recipe.requiredLevel) return { success: false };
 
     // Check if we have all ingredients
-    if (!get().canCraft(recipe)) return false;
+    if (!get().canCraft(recipe)) return { success: false };
 
-    // Remove ingredients
-    for (const ingredient of recipe.ingredients) {
-      const success = await get().removeFromInventory(
-        ingredient.resourceId,
-        ingredient.quantity
-      );
-      if (!success) return false;
+    // Check for monkey crafting helper (10% chance to not consume materials)
+    const { activePet } = get();
+    const monkeySaveRoll = activePet === 'monkey' && Math.random() < 0.10;
+
+    // Remove ingredients (unless monkey saved them)
+    if (!monkeySaveRoll) {
+      for (const ingredient of recipe.ingredients) {
+        const success = await get().removeFromInventory(
+          ingredient.resourceId,
+          ingredient.quantity
+        );
+        if (!success) return { success: false };
+      }
     }
 
     // Add result to inventory
     await get().addToInventory(recipe.result.resourceId, recipe.result.quantity);
 
     // Track crafted items
-    const { craftedItems, raftProgress } = get();
+    const { craftedItems, craftedTools, raftProgress } = get();
     if (!craftedItems.includes(recipeId)) {
       set({ craftedItems: [...craftedItems, recipeId] });
+    }
+
+    // Track crafted tools
+    const toolIds: ToolType[] = ['stoneAxe', 'fishingRod', 'basket'];
+    if (toolIds.includes(recipeId as ToolType) && !craftedTools.includes(recipeId as ToolType)) {
+      set({ craftedTools: [...craftedTools, recipeId as ToolType] });
     }
 
     // Update raft progress if this is a raft component
@@ -250,13 +368,101 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     await get().saveState();
-    return true;
+    return { success: true, savedMaterials: monkeySaveRoll };
   },
 
   setCurrentAction: (action: PendingAction | null) => {
     set({ currentAction: action });
   },
 
+  // Pet actions
+  unlockPet: async (petId: PetType) => {
+    const { unlockedPets, petStates, activePet } = get();
+    if (unlockedPets.includes(petId)) return;
+
+    const newPetState: PetState = {
+      petId,
+      unlockedAt: new Date(),
+      autoGatherAccumulated: 0,
+    };
+
+    set({
+      unlockedPets: [...unlockedPets, petId],
+      petStates: { ...petStates, [petId]: newPetState },
+      // Auto-equip first pet
+      activePet: activePet || petId,
+    });
+
+    await get().saveState();
+  },
+
+  setActivePet: async (petId: PetType | null) => {
+    set({ activePet: petId });
+    await get().saveState();
+  },
+
+  processCrabAutoGather: async (): Promise<boolean> => {
+    const { activePet, petStates } = get();
+    if (activePet !== 'crab') return false;
+
+    const crabState = petStates.crab;
+    const accumulated = (crabState?.autoGatherAccumulated || 0) + 1;
+
+    if (accumulated >= 5) {
+      // Auto-gather a shell
+      await get().addToInventory('shell', 1);
+
+      // Add to auto-gather queue for notification
+      const { autoGatherQueue } = get();
+      set({
+        petStates: {
+          ...petStates,
+          crab: {
+            ...crabState,
+            petId: 'crab',
+            unlockedAt: crabState?.unlockedAt || new Date(),
+            autoGatherAccumulated: 0,
+            lastAutoGather: new Date(),
+          },
+        },
+        autoGatherQueue: [...autoGatherQueue, { resourceId: 'shell', quantity: 1 }],
+      });
+
+      await get().saveState();
+      return true;
+    } else {
+      set({
+        petStates: {
+          ...petStates,
+          crab: {
+            ...crabState,
+            petId: 'crab',
+            unlockedAt: crabState?.unlockedAt || new Date(),
+            autoGatherAccumulated: accumulated,
+          },
+        },
+      });
+      await get().saveState();
+      return false;
+    }
+  },
+
+  checkPetUnlocks: async (level: number): Promise<PetType[]> => {
+    const { unlockedPets } = get();
+    const newPets = getNewlyUnlockedPets(level, unlockedPets);
+
+    for (const petId of newPets) {
+      await get().unlockPet(petId);
+    }
+
+    return newPets;
+  },
+
+  clearAutoGatherQueue: () => {
+    set({ autoGatherQueue: [] });
+  },
+
+  // Getters
   getInventoryCount: (resourceId: string): number => {
     const { inventory } = get();
     const item = inventory.find((i) => i.resourceId === resourceId);
@@ -307,18 +513,51 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return get().raftProgress.raft;
   },
 
+  hasTool: (toolId: ToolType): boolean => {
+    return get().craftedTools.includes(toolId);
+  },
+
+  getCraftedTools: (): ToolType[] => {
+    return get().craftedTools;
+  },
+
+  getActivePet: (): Pet | null => {
+    const { activePet } = get();
+    if (!activePet) return null;
+    return PETS[activePet] || null;
+  },
+
+  getUnlockedPetsList: (): Pet[] => {
+    const { unlockedPets } = get();
+    return unlockedPets.map(petId => PETS[petId]).filter(Boolean);
+  },
+
   // Internal: Save state to IndexedDB
   saveState: async () => {
-    const { inventory, craftedItems, unlockedLocations, unlockedPets, activePet, raftProgress } = get();
+    const {
+      inventory,
+      craftedItems,
+      craftedTools,
+      unlockedLocations,
+      unlockedPets,
+      activePet,
+      petStates,
+      raftProgress,
+      autoGatherQueue,
+    } = get();
+
     await db.gameState.put({
       id: 'default',
       inventory,
       craftedItems,
+      craftedTools,
       unlockedLocations,
       unlockedPets,
       activePet,
+      petStates,
       raftProgress,
       currentAction: null,
+      autoGatherQueue,
     });
   },
 }));

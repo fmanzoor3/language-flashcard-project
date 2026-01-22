@@ -4,15 +4,9 @@ import { useGameStore } from '../../../stores/gameStore';
 import { useUserStore } from '../../../stores/userStore';
 import { getIntervalPreviews } from '../services/sm2Algorithm';
 import { RESOURCES } from '../../game/data/resources';
-import { getRarityColor, getRarityGlow } from '../../game/engine/LootSystem';
+import { IslandView } from '../../game/components/island';
+import { PetSelector } from '../../game/components/island/PetManager';
 import type { SM2Response } from '../../../types';
-
-const LOCATION_ICONS: Record<string, string> = {
-  tree: '🌳',
-  bush: '🌿',
-  beach: '🏖️',
-  sea: '🌊',
-};
 
 interface FlashcardPracticeProps {
   onSwitchToCards: () => void;
@@ -29,7 +23,14 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
     cards,
   } = useFlashcardStore();
 
-  const { currentAction, inventory } = useGameStore();
+  const {
+    currentAction,
+    inventory,
+    activePet,
+    unlockedPets,
+    unlockedLocations,
+    setActivePet,
+  } = useGameStore();
   const progress = useUserStore((state) => state.progress);
 
   const [isFlipped, setIsFlipped] = useState(false);
@@ -59,11 +60,6 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
 
   const intervalPreviews = currentCard
     ? getIntervalPreviews(currentCard)
-    : null;
-
-  // Get loot display info
-  const lootInfo = currentAction?.result?.resourceId
-    ? RESOURCES[currentAction.result.resourceId]
     : null;
 
   return (
@@ -254,72 +250,32 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
       </div>
 
       {/* Game Section */}
-      <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 p-4 flex flex-col shrink-0">
-        {/* Island Scene */}
-        <div className="flex-1 flex flex-col items-center justify-center relative">
-          {/* Character */}
-          <div
-            className={`text-6xl transition-all duration-500 ${
-              currentAction?.animationState === 'walking'
-                ? 'animate-bounce'
-                : currentAction?.animationState === 'searching'
-                ? 'animate-pulse'
-                : ''
-            }`}
-          >
-            🧑
-          </div>
-
-          {/* Current Action Display */}
-          {currentAction && (
-            <div className="mt-2 text-center">
-              <span className="text-2xl">
-                {LOCATION_ICONS[currentAction.location]}
-              </span>
-              <p className="text-sm text-slate-400 mt-1">
-                {currentAction.animationState === 'walking' && 'Walking...'}
-                {currentAction.animationState === 'searching' && 'Searching...'}
-                {currentAction.animationState === 'found' && lootInfo && (
-                  <span className={getRarityColor(lootInfo.rarity)}>
-                    Found {currentAction.result?.quantity}x {lootInfo.emoji} {lootInfo.name}!
-                  </span>
-                )}
-                {currentAction.animationState === 'failed' && (
-                  <span className="text-slate-500">Nothing found...</span>
-                )}
-              </p>
-            </div>
-          )}
-
-          {/* Loot Animation */}
-          {currentAction?.animationState === 'found' && lootInfo && (
-            <div
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-4xl animate-bounce ${getRarityGlow(
-                lootInfo.rarity
-              )}`}
-            >
-              {lootInfo.emoji}
-            </div>
-          )}
-
-          {/* Location Icons (when idle) */}
-          {!currentAction && currentSession && (
-            <div className="flex gap-4 mt-4">
-              {Object.entries(LOCATION_ICONS).map(([loc, icon]) => (
-                <div
-                  key={loc}
-                  className="text-2xl opacity-50"
-                  title={loc}
-                >
-                  {icon}
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 flex flex-col shrink-0">
+        {/* Island Visualization */}
+        <div className="flex-1 min-h-0">
+          <IslandView
+            currentAction={currentAction}
+            activePet={activePet}
+            unlockedLocations={unlockedLocations}
+            isCompact={false}
+          />
         </div>
 
-        {/* Mini Inventory */}
-        <div className="border-t border-slate-700 pt-2 mt-2">
+        {/* Bottom Panel: Pet Selector + Mini Inventory */}
+        <div className="border-t border-slate-700 p-3">
+          {/* Pet selector row */}
+          {unlockedPets.length > 0 && (
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-400">Active Pet</span>
+              <PetSelector
+                unlockedPets={unlockedPets}
+                activePet={activePet}
+                onSetActivePet={setActivePet}
+              />
+            </div>
+          )}
+
+          {/* Mini Inventory */}
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-slate-400">Recent Loot</span>
             <span className="text-xs text-slate-500">

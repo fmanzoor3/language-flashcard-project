@@ -90,3 +90,230 @@ body {
   pointer-events: none;
   border-radius: inherit;
 }
+
+/* ============ Island Game Animations ============ */
+
+/* Float up animation for loot popups */
+@keyframes float-up {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: float-up 2s ease-out forwards;
+}
+
+/* Pop in animation for items appearing */
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.3s ease-out forwards;
+}
+
+/* Shake animation for failed searches */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Jump animation for found items */
+@keyframes jump {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-jump {
+  animation: jump 0.5s ease-in-out;
+}
+
+/* Slow spin for searching animation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Bobbing animation for idle state */
+@keyframes bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-bob {
+  animation: bob 2s ease-in-out infinite;
+}
+
+/* Walk animation bounce */
+@keyframes walk-bounce {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  25% {
+    transform: translateY(-3px) scaleY(0.95);
+  }
+  50% {
+    transform: translateY(0) scaleY(1);
+  }
+  75% {
+    transform: translateY(-3px) scaleY(0.95);
+  }
+}
+
+.animate-walk {
+  animation: walk-bounce 0.4s ease-in-out infinite;
+}
+
+/* Celebration animation */
+@keyframes celebrate {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(0deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(5deg);
+  }
+}
+
+.animate-celebrate {
+  animation: celebrate 0.6s ease-in-out;
+}
+
+/* Pet following animation */
+@keyframes pet-follow {
+  0%, 100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(3deg);
+  }
+}
+
+.animate-pet-follow {
+  animation: pet-follow 0.8s ease-in-out infinite;
+}
+
+/* Rarity glow effects */
+.glow-common {
+  box-shadow: 0 0 10px rgba(156, 163, 175, 0.5);
+}
+
+.glow-rare {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+}
+
+.glow-veryRare {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.7);
+}
+
+.glow-legendary {
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+  animation: legendary-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes legendary-pulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(245, 158, 11, 1);
+  }
+}
+
+/* Island background gradient layers */
+.island-bg {
+  background: linear-gradient(
+    to bottom,
+    #0ea5e9 0%,    /* Sky blue */
+    #38bdf8 20%,   /* Light sky */
+    #22c55e 40%,   /* Forest green */
+    #facc15 70%,   /* Sand */
+    #0284c7 85%,   /* Shallow water */
+    #0369a1 100%   /* Deep water */
+  );
+}
+
+/* Location markers pulse */
+@keyframes location-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.location-marker:hover {
+  animation: location-pulse 1s ease-in-out infinite;
+}
+
+/* Character movement transition */
+.character-move {
+  transition: left 0.5s ease-in-out, top 0.5s ease-in-out;
+}
+
+/* Bonus text animation */
+@keyframes bonus-slide-in {
+  0% {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-bonus-slide {
+  animation: bonus-slide-in 0.3s ease-out forwards;
+}
