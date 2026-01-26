@@ -43,17 +43,18 @@ export function Character({ position, animationState, isMobile = false }: Charac
   // Get the sprite for the current animation state
   const sprite = CHARACTER_SPRITES[animationState] || CHARACTER_SPRITES.idle;
 
-  // Base character size based on device
-  const baseSize = isMobile ? 64 : 96;
+  // Base character size based on device (increased for better visibility)
+  const baseSize = isMobile ? 80 : 120;
 
-  // Scale up walking/celebrating sprites since they're slightly smaller than idle
+  // Scale up walking/celebrating sprites since they're smaller than idle
   const getSpriteSize = () => {
     switch (animationState) {
       case 'walking':
       case 'searching':
+        return Math.round(baseSize * 1.4); // 40% larger to match idle sprite
       case 'found':
       case 'celebrating':
-        return Math.round(baseSize * 1.15); // 15% larger to match idle sprite
+        return Math.round(baseSize * 1.55); // 55% larger for celebrating sprite
       default:
         return baseSize;
     }
