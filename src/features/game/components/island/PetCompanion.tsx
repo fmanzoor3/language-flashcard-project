@@ -4,16 +4,19 @@ interface PetCompanionProps {
   pet: Pet;
   characterPosition: CharacterPosition;
   animationState?: PetAnimationState;
+  isMobile?: boolean;
 }
 
 /**
  * Pet companion that follows the character
  */
-export function PetCompanion({ pet, characterPosition, animationState }: PetCompanionProps) {
+export function PetCompanion({ pet, characterPosition, animationState, isMobile = false }: PetCompanionProps) {
   // Pet follows slightly behind and to the side of character
+  // Smaller offset on mobile
+  const offset = isMobile ? { x: 6, y: 4 } : { x: 8, y: 5 };
   const petPosition = {
-    x: characterPosition.x + 8,
-    y: characterPosition.y + 5,
+    x: characterPosition.x + offset.x,
+    y: characterPosition.y + offset.y,
   };
 
   // Get animation class based on state
@@ -45,7 +48,7 @@ export function PetCompanion({ pet, characterPosition, animationState }: PetComp
     >
       {/* Pet emoji with animation */}
       <div
-        className={`text-xl ${getAnimationClass()}`}
+        className={`${isMobile ? 'text-base' : 'text-xl'} ${getAnimationClass()}`}
         title={`${pet.name}: ${pet.ability.description}`}
       >
         {pet.emoji}

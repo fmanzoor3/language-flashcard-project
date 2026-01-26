@@ -1,4 +1,5 @@
-import type { PendingAction, LocationType, Pet, PetType } from '../../../../types';
+import { useState, useEffect } from 'react';
+import type { PendingAction, LocationType, Pet, PetType, CharacterPosition } from '../../../../types';
 import { LOCATION_POSITIONS, IDLE_POSITION } from '../../../../types';
 import { Character } from './Character';
 import { LocationButton } from './LocationButton';
@@ -13,6 +14,16 @@ interface IslandViewProps {
   isCompact?: boolean;
 }
 
+// Mobile-optimized positions (spread in corners for better use of horizontal space)
+const MOBILE_LOCATION_POSITIONS: Record<LocationType, CharacterPosition> = {
+  tree: { x: 82, y: 18 },   // Top-right
+  bush: { x: 18, y: 18 },   // Top-left
+  beach: { x: 78, y: 78 },  // Bottom-right
+  sea: { x: 22, y: 78 },    // Bottom-left
+};
+
+const MOBILE_IDLE_POSITION: CharacterPosition = { x: 50, y: 48 };
+
 /**
  * Main island visualization component
  * Shows the character, locations, pet, and loot animations
@@ -23,8 +34,41 @@ export function IslandView({
   unlockedLocations,
   isCompact = false,
 }: IslandViewProps) {
-  // Get character position from action or idle position
-  const characterPosition = currentAction?.characterPosition || IDLE_POSITION;
+  // Detect mobile layout based on screen width
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+
+  useEffect(() => {
+    const checkLayout = () => {
+      setIsMobileLayout(window.innerWidth < 768);
+    };
+
+    checkLayout();
+    window.addEventListener('resize', checkLayout);
+    return () => window.removeEventListener('resize', checkLayout);
+  }, []);
+
+  // Choose positions based on layout
+  const locationPositions = isMobileLayout ? MOBILE_LOCATION_POSITIONS : LOCATION_POSITIONS;
+  const idlePosition = isMobileLayout ? MOBILE_IDLE_POSITION : IDLE_POSITION;
+
+  // Get character position - use mobile positions when on mobile
+  const getCharacterPosition = (): CharacterPosition => {
+    if (!currentAction) return idlePosition;
+
+    const { animationState, location } = currentAction;
+
+    // When idle, use idle position
+    if (animationState === 'idle') return idlePosition;
+
+    // For active states, use the appropriate position for current layout
+    if (location && ['walking', 'searching', 'found', 'failed', 'celebrating'].includes(animationState)) {
+      return locationPositions[location];
+    }
+
+    return idlePosition;
+  };
+
+  const characterPosition = getCharacterPosition();
   const animationState = currentAction?.animationState || 'idle';
   const activeLocation = currentAction?.location || null;
 
@@ -49,16 +93,16 @@ export function IslandView({
     <div
       className={`
         relative overflow-hidden rounded-lg
-        ${isCompact ? 'h-40' : 'h-full min-h-[200px]'}
+        ${isCompact ? 'h-40' : 'h-full min-h-[180px] sm:min-h-[200px]'}
         island-bg
       `}
     >
       {/* Campfire at center (idle position) */}
       <div
-        className="absolute z-5 text-xl"
+        className="absolute z-5 text-base sm:text-xl"
         style={{
-          left: `${IDLE_POSITION.x}%`,
-          top: `${IDLE_POSITION.y + 8}%`,
+          left: `${idlePosition.x}%`,
+          top: `${idlePosition.y + 8}%`,
           transform: 'translate(-50%, -50%)',
         }}
       >
@@ -70,14 +114,19 @@ export function IslandView({
         <LocationButton
           key={location}
           location={location}
-          position={LOCATION_POSITIONS[location]}
+          position={locationPositions[location]}
           isUnlocked={unlockedLocations.includes(location)}
           isActive={activeLocation === location}
+          isMobile={isMobileLayout}
         />
       ))}
 
       {/* Character */}
-      <Character position={characterPosition} animationState={animationState} />
+      <Character
+        position={characterPosition}
+        animationState={animationState}
+        isMobile={isMobileLayout}
+      />
 
       {/* Pet companion */}
       {activePetData && (
@@ -85,6 +134,7 @@ export function IslandView({
           pet={activePetData}
           characterPosition={characterPosition}
           animationState={currentAction?.petAnimation}
+          isMobile={isMobileLayout}
         />
       )}
 
@@ -95,23 +145,24 @@ export function IslandView({
           quantity={lootResult.quantity}
           rarity={lootResult.rarity}
           bonuses={lootResult.appliedBonuses}
+          isMobile={isMobileLayout}
         />
       )}
 
       {/* Failed search popup */}
-      {showFailed && <FailedSearchPopup />}
+      {showFailed && <FailedSearchPopup isMobile={isMobileLayout} />}
 
       {/* Active pet indicator (bottom left) */}
       {activePetData && !isCompact && (
-        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/40 rounded-full px-2 py-1">
-          <span className="animate-bob">{activePetData.emoji}</span>
-          <span className="text-xs text-white/80">{activePetData.name.split(' ')[0]}</span>
+        <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 flex items-center gap-1 sm:gap-1.5 bg-black/40 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1">
+          <span className="animate-bob text-sm sm:text-base">{activePetData.emoji}</span>
+          <span className="text-[10px] sm:text-xs text-white/80">{activePetData.name.split(' ')[0]}</span>
         </div>
       )}
 
       {/* Instructions (when idle and not compact) */}
       {animationState === 'idle' && !isCompact && (
-        <div className="absolute bottom-2 right-2 text-xs text-white/60 bg-black/30 rounded px-2 py-1">
+        <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 text-[10px] sm:text-xs text-white/60 bg-black/30 rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
           Review a flashcard to explore!
         </div>
       )}

@@ -5,6 +5,7 @@ interface LocationButtonProps {
   position: CharacterPosition;
   isUnlocked: boolean;
   isActive: boolean;
+  isMobile?: boolean;
 }
 
 const LOCATION_CONFIG: Record<LocationType, { emoji: string; label: string }> = {
@@ -17,7 +18,13 @@ const LOCATION_CONFIG: Record<LocationType, { emoji: string; label: string }> = 
 /**
  * Interactive location marker on the island
  */
-export function LocationButton({ location, position, isUnlocked, isActive }: LocationButtonProps) {
+export function LocationButton({
+  location,
+  position,
+  isUnlocked,
+  isActive,
+  isMobile = false,
+}: LocationButtonProps) {
   const config = LOCATION_CONFIG[location];
 
   return (
@@ -33,7 +40,7 @@ export function LocationButton({ location, position, isUnlocked, isActive }: Loc
       <div
         className={`
           location-marker
-          text-2xl p-2 rounded-full
+          ${isMobile ? 'text-lg p-1.5' : 'text-2xl p-2'} rounded-full
           transition-all duration-300
           ${isUnlocked
             ? isActive
@@ -46,10 +53,12 @@ export function LocationButton({ location, position, isUnlocked, isActive }: Loc
         {isUnlocked ? config.emoji : '🔒'}
       </div>
 
-      {/* Label */}
+      {/* Label - hidden on mobile to reduce clutter */}
       <span
         className={`
-          mt-1 text-xs font-medium px-1.5 py-0.5 rounded
+          mt-0.5 sm:mt-1 text-[9px] sm:text-xs font-medium px-1 sm:px-1.5 py-0.5 rounded
+          ${isMobile ? 'hidden' : 'block'}
+          sm:block
           ${isUnlocked
             ? 'text-white bg-black/40'
             : 'text-gray-400 bg-black/30'
@@ -61,7 +70,7 @@ export function LocationButton({ location, position, isUnlocked, isActive }: Loc
 
       {/* Active indicator pulse */}
       {isActive && (
-        <div className="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping" />
+        <div className={`absolute ${isMobile ? 'inset-[-2px]' : 'inset-0'} rounded-full bg-emerald-400/30 animate-ping`} />
       )}
     </div>
   );

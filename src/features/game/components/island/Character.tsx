@@ -3,12 +3,13 @@ import type { AnimationState, CharacterPosition } from '../../../../types';
 interface CharacterProps {
   position: CharacterPosition;
   animationState: AnimationState;
+  isMobile?: boolean;
 }
 
 /**
  * Animated character that moves around the island
  */
-export function Character({ position, animationState }: CharacterProps) {
+export function Character({ position, animationState, isMobile = false }: CharacterProps) {
   // Get animation class based on state
   const getAnimationClass = () => {
     switch (animationState) {
@@ -39,12 +40,12 @@ export function Character({ position, animationState }: CharacterProps) {
       }}
     >
       {/* Character emoji with animation */}
-      <div className={`text-3xl ${getAnimationClass()}`}>
+      <div className={`${isMobile ? 'text-2xl' : 'text-3xl'} ${getAnimationClass()}`}>
         🧑
       </div>
 
       {/* Status indicator below character */}
-      <div className="mt-1 text-xs text-white/80 bg-black/30 px-1.5 py-0.5 rounded-full">
+      <div className={`mt-0.5 sm:mt-1 ${isMobile ? 'text-[9px]' : 'text-xs'} text-white/80 bg-black/30 px-1 sm:px-1.5 py-0.5 rounded-full`}>
         {animationState === 'idle' && '...'}
         {animationState === 'walking' && 'Going...'}
         {animationState === 'searching' && 'Looking...'}

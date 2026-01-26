@@ -8,12 +8,13 @@ interface LootPopupProps {
   rarity: RarityTier;
   bonuses?: string[];
   onComplete?: () => void;
+  isMobile?: boolean;
 }
 
 /**
  * Animated popup showing loot found
  */
-export function LootPopup({ resourceId, quantity, rarity, bonuses, onComplete }: LootPopupProps) {
+export function LootPopup({ resourceId, quantity, rarity, bonuses, onComplete, isMobile = false }: LootPopupProps) {
   const [isVisible, setIsVisible] = useState(true);
   const resource = RESOURCES[resourceId];
 
@@ -70,33 +71,34 @@ export function LootPopup({ resourceId, quantity, rarity, bonuses, onComplete }:
         className={`
           animate-pop-in
           ${styles.bgClass} ${styles.borderClass} ${styles.glowClass}
-          border-2 rounded-xl px-4 py-3
+          border-2 rounded-xl
+          ${isMobile ? 'px-3 py-2' : 'px-4 py-3'}
           flex flex-col items-center
           backdrop-blur-sm
         `}
       >
         {/* Loot emoji with animation */}
-        <div className={`text-4xl mb-1 ${rarity === 'legendary' ? 'animate-celebrate' : 'animate-jump'}`}>
+        <div className={`${isMobile ? 'text-2xl' : 'text-4xl'} mb-1 ${rarity === 'legendary' ? 'animate-celebrate' : 'animate-jump'}`}>
           {resource.emoji}
         </div>
 
         {/* Loot name and quantity */}
-        <div className={`text-lg font-bold ${styles.textClass}`}>
+        <div className={`${isMobile ? 'text-sm' : 'text-lg'} font-bold ${styles.textClass}`}>
           {resource.name} x{quantity}
         </div>
 
         {/* Rarity label */}
-        <div className={`text-xs uppercase tracking-wide ${styles.textClass} opacity-80`}>
+        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} uppercase tracking-wide ${styles.textClass} opacity-80`}>
           {rarity === 'veryRare' ? 'Very Rare' : rarity}
         </div>
 
         {/* Applied bonuses */}
         {bonuses && bonuses.length > 0 && (
-          <div className="mt-2 space-y-0.5">
+          <div className="mt-1.5 sm:mt-2 space-y-0.5">
             {bonuses.map((bonus, index) => (
               <div
                 key={index}
-                className="text-xs text-emerald-400 animate-bonus-slide"
+                className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-emerald-400 animate-bonus-slide`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {bonus}
@@ -112,7 +114,7 @@ export function LootPopup({ resourceId, quantity, rarity, bonuses, onComplete }:
 /**
  * Failed search popup
  */
-export function FailedSearchPopup({ onComplete }: { onComplete?: () => void }) {
+export function FailedSearchPopup({ onComplete, isMobile = false }: { onComplete?: () => void; isMobile?: boolean }) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -128,9 +130,9 @@ export function FailedSearchPopup({ onComplete }: { onComplete?: () => void }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-      <div className="animate-shake bg-slate-800/90 border border-slate-600 rounded-lg px-4 py-2">
-        <div className="text-2xl mb-1 text-center">😕</div>
-        <div className="text-sm text-slate-400">Nothing found...</div>
+      <div className={`animate-shake bg-slate-800/90 border border-slate-600 rounded-lg ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
+        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} mb-0.5 sm:mb-1 text-center`}>😕</div>
+        <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>Nothing found...</div>
       </div>
     </div>
   );
