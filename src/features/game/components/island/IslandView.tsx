@@ -24,6 +24,9 @@ const MOBILE_LOCATION_POSITIONS: Record<LocationType, CharacterPosition> = {
 
 const MOBILE_IDLE_POSITION: CharacterPosition = { x: 50, y: 48 };
 
+// Background image path
+const BACKGROUND_IMAGE = '/game/background.png';
+
 /**
  * Main island visualization component
  * Shows the character, locations, pet, and loot animations
@@ -94,78 +97,81 @@ export function IslandView({
       className={`
         relative overflow-hidden rounded-lg
         ${isCompact ? 'h-40' : 'h-full min-h-[180px] sm:min-h-[200px]'}
-        island-bg
       `}
     >
-      {/* Campfire at center (idle position) */}
+      {/* Background image with blur */}
       <div
-        className="absolute z-5 text-base sm:text-xl"
+        className="absolute inset-0 bg-cover bg-center"
         style={{
-          left: `${idlePosition.x}%`,
-          top: `${idlePosition.y + 8}%`,
-          transform: 'translate(-50%, -50%)',
+          backgroundImage: `url(${BACKGROUND_IMAGE})`,
+          filter: 'blur(2px)',
+          transform: 'scale(1.05)', // Prevent blur edges from showing
         }}
-      >
-        🔥
-      </div>
-
-      {/* Location markers */}
-      {(['tree', 'bush', 'beach', 'sea'] as LocationType[]).map((location) => (
-        <LocationButton
-          key={location}
-          location={location}
-          position={locationPositions[location]}
-          isUnlocked={unlockedLocations.includes(location)}
-          isActive={activeLocation === location}
-          isMobile={isMobileLayout}
-        />
-      ))}
-
-      {/* Character */}
-      <Character
-        position={characterPosition}
-        animationState={animationState}
-        isMobile={isMobileLayout}
       />
 
-      {/* Pet companion */}
-      {activePetData && (
-        <PetCompanion
-          pet={activePetData}
-          characterPosition={characterPosition}
-          animationState={currentAction?.petAnimation}
+      {/* Slight overlay to ensure UI elements are readable */}
+      <div className="absolute inset-0 bg-black/10" />
+
+      {/* Content layer */}
+      <div className="relative h-full">
+        {/* Location markers */}
+        {(['tree', 'bush', 'beach', 'sea'] as LocationType[]).map((location) => (
+          <LocationButton
+            key={location}
+            location={location}
+            position={locationPositions[location]}
+            isUnlocked={unlockedLocations.includes(location)}
+            isActive={activeLocation === location}
+            isMobile={isMobileLayout}
+          />
+        ))}
+
+        {/* Character */}
+        <Character
+          position={characterPosition}
+          animationState={animationState}
           isMobile={isMobileLayout}
         />
-      )}
 
-      {/* Loot popup */}
-      {showLoot && lootResult?.resourceId && lootResult.rarity && (
-        <LootPopup
-          resourceId={lootResult.resourceId}
-          quantity={lootResult.quantity}
-          rarity={lootResult.rarity}
-          bonuses={lootResult.appliedBonuses}
-          isMobile={isMobileLayout}
-        />
-      )}
+        {/* Pet companion */}
+        {activePetData && (
+          <PetCompanion
+            pet={activePetData}
+            characterPosition={characterPosition}
+            animationState={currentAction?.petAnimation}
+            isMobile={isMobileLayout}
+          />
+        )}
 
-      {/* Failed search popup */}
-      {showFailed && <FailedSearchPopup isMobile={isMobileLayout} />}
+        {/* Loot popup */}
+        {showLoot && lootResult?.resourceId && lootResult.rarity && (
+          <LootPopup
+            resourceId={lootResult.resourceId}
+            quantity={lootResult.quantity}
+            rarity={lootResult.rarity}
+            bonuses={lootResult.appliedBonuses}
+            isMobile={isMobileLayout}
+          />
+        )}
 
-      {/* Active pet indicator (bottom left) */}
-      {activePetData && !isCompact && (
-        <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 flex items-center gap-1 sm:gap-1.5 bg-black/40 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1">
-          <span className="animate-bob text-sm sm:text-base">{activePetData.emoji}</span>
-          <span className="text-[10px] sm:text-xs text-white/80">{activePetData.name.split(' ')[0]}</span>
-        </div>
-      )}
+        {/* Failed search popup */}
+        {showFailed && <FailedSearchPopup isMobile={isMobileLayout} />}
 
-      {/* Instructions (when idle and not compact) */}
-      {animationState === 'idle' && !isCompact && (
-        <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 text-[10px] sm:text-xs text-white/60 bg-black/30 rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
-          Review a flashcard to explore!
-        </div>
-      )}
+        {/* Active pet indicator (bottom left) */}
+        {activePetData && !isCompact && (
+          <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 flex items-center gap-1 sm:gap-1.5 bg-black/50 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 backdrop-blur-sm">
+            <span className="animate-bob text-sm sm:text-base">{activePetData.emoji}</span>
+            <span className="text-[10px] sm:text-xs text-white/90">{activePetData.name.split(' ')[0]}</span>
+          </div>
+        )}
+
+        {/* Instructions (when idle and not compact) */}
+        {animationState === 'idle' && !isCompact && (
+          <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 text-[10px] sm:text-xs text-white/80 bg-black/40 backdrop-blur-sm rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
+            Review a flashcard to explore!
+          </div>
+        )}
+      </div>
     </div>
   );
 }

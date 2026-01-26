@@ -159,7 +159,7 @@ body {
   animation: jump 0.5s ease-in-out;
 }
 
-/* Slow spin for searching animation */
+/* Slow spin for searching animation (used for loading indicators) */
 @keyframes spin-slow {
   from {
     transform: rotate(0deg);
@@ -171,6 +171,26 @@ body {
 
 .animate-spin-slow {
   animation: spin-slow 2s linear infinite;
+}
+
+/* Search animation - character looking around */
+@keyframes search {
+  0%, 100% {
+    transform: translateX(0) scaleX(1);
+  }
+  25% {
+    transform: translateX(-5px) scaleX(1);
+  }
+  50% {
+    transform: translateX(5px) scaleX(-1);
+  }
+  75% {
+    transform: translateX(0) scaleX(-1);
+  }
+}
+
+.animate-search {
+  animation: search 1.5s ease-in-out infinite;
 }
 
 /* Bobbing animation for idle state */

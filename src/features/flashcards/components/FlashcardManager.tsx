@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useFlashcardStore } from '../../../stores/flashcardStore';
 import type { Flashcard, CardStatus } from '../../../types';
 
@@ -131,6 +132,7 @@ export default function FlashcardManager() {
             <p className="text-sm text-slate-400">{cards.length} cards total</p>
           </div>
           <button
+            type="button"
             onClick={() => setShowAddCard(true)}
             className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
           >
@@ -295,7 +297,7 @@ export default function FlashcardManager() {
       </div>
 
       {/* Add Card Modal */}
-      {showAddCard && (
+      {showAddCard && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Add Flashcard</h2>
@@ -346,11 +348,12 @@ export default function FlashcardManager() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Modal */}
-      {editingCard && (
+      {editingCard && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">Edit Flashcard</h3>
@@ -430,11 +433,12 @@ export default function FlashcardManager() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation */}
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-bold mb-2">Delete Card?</h3>
@@ -456,7 +460,8 @@ export default function FlashcardManager() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
