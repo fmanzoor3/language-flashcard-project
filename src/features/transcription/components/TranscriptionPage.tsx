@@ -105,8 +105,8 @@ export default function TranscriptionPage() {
           </>
         ) : (
           // Idle state - Start screen
-          <div className="flex-1 flex flex-col items-center justify-center p-4">
-            <div className="text-center max-w-md">
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="text-center max-w-md mx-auto pt-8">
               <div className="text-6xl mb-4">🎙️</div>
               <h2 className="text-2xl font-bold mb-2">Live Transcription</h2>
               <p className="text-slate-400 mb-6">
@@ -150,7 +150,9 @@ export default function TranscriptionPage() {
             </div>
 
             {/* Past Sessions */}
-            <PastSessionsList onSelectSession={setReviewSession} />
+            <div className="w-full flex justify-center">
+              <PastSessionsList onSelectSession={setReviewSession} />
+            </div>
           </div>
         )}
       </div>
