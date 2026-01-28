@@ -38,7 +38,9 @@ const RECONNECT_DELAY = 2000; // 2 seconds
  * Get transcription configuration from environment variables
  */
 function getTranscriptionConfig(): TranscriptionConfig {
-  let endpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT?.trim();
+  // Use separate transcription endpoint if provided, otherwise fall back to main endpoint
+  let endpoint = import.meta.env.VITE_AZURE_OPENAI_TRANSCRIBE_ENDPOINT?.trim()
+    || import.meta.env.VITE_AZURE_OPENAI_ENDPOINT?.trim();
   const apiKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY?.trim();
   const deployment = import.meta.env.VITE_AZURE_OPENAI_TRANSCRIBE_DEPLOYMENT?.trim() || 'gpt-4o-mini-transcribe';
 
@@ -47,6 +49,7 @@ function getTranscriptionConfig(): TranscriptionConfig {
   }
 
   // Convert HTTP endpoint to WebSocket endpoint
+  // Handle both .openai.azure.com and .cognitiveservices.azure.com endpoints
   endpoint = endpoint.replace(/\/$/, '').replace('https://', '').replace('http://', '');
 
   return { endpoint: `wss://${endpoint}`, apiKey, deployment };
@@ -79,16 +82,24 @@ export async function startTranscriptionSession(
   stopTranscriptionSession();
 
   const config = getTranscriptionConfig();
-  const apiVersion = '2024-12-17';
+  // Use the transcription-specific API version and intent parameter
+  const apiVersion = '2025-04-01-preview';
 
-  // Build WebSocket URL with API key as query parameter
-  const wsUrl = `${config.endpoint}/openai/realtime?api-version=${apiVersion}&deployment=${config.deployment}&api-key=${encodeURIComponent(config.apiKey)}`;
+  // Build WebSocket URL for transcription mode
+  // Note: For transcription, we use intent=transcription and include the deployment
+  const wsUrl = `${config.endpoint}/openai/realtime?api-version=${apiVersion}&deployment=${config.deployment}&intent=transcription`;
 
   return new Promise((resolve, reject) => {
     let ws: WebSocket;
 
     try {
-      ws = new WebSocket(wsUrl);
+      // Browser WebSocket doesn't support custom headers, so we pass api-key as query param
+      const wsUrlWithAuth = `${wsUrl}&api-key=${encodeURIComponent(config.apiKey)}`;
+
+      // Log connection attempt (hide API key)
+      console.log('Connecting to transcription service:', wsUrl.replace(config.apiKey, '***'));
+
+      ws = new WebSocket(wsUrlWithAuth);
     } catch (err) {
       const error = new Error(
         'Failed to create WebSocket connection. Make sure the gpt-4o-mini-transcribe model is deployed in your Azure OpenAI resource.'
@@ -105,27 +116,41 @@ export async function startTranscriptionSession(
       reconnectAttempts: 0,
     };
 
+    // Set a connection timeout
+    const connectionTimeout = setTimeout(() => {
+      if (currentSession && !currentSession.isConnected) {
+        console.error('WebSocket connection timeout');
+        ws.close();
+        const error = new Error(
+          'Connection timeout. The transcription service may not be available. ' +
+          'Please check your Azure OpenAI deployment and try again.'
+        );
+        callbacks.onError?.(error);
+        reject(error);
+      }
+    }, 15000); // 15 second timeout
+
     ws.onopen = () => {
+      clearTimeout(connectionTimeout);
       if (!currentSession) return;
 
       currentSession.isConnected = true;
       currentSession.reconnectAttempts = 0;
 
-      // Configure session for transcription
+      // Configure session for transcription using the transcription-specific message type
       const sessionConfig = {
-        type: 'session.update',
+        type: 'transcription_session.update',
         session: {
-          modalities: ['text'],
           input_audio_format: 'pcm16',
           input_audio_transcription: {
-            model: 'whisper-1',
+            model: config.deployment, // Use the deployment name (gpt-4o-mini-transcribe)
+            prompt: 'Transcribe the following Turkish speech accurately.',
           },
           turn_detection: {
             type: 'server_vad',
             threshold: vadThreshold,
             prefix_padding_ms: 300,
             silence_duration_ms: silenceDuration,
-            create_response: false, // We just want transcription, not AI responses
           },
           ...(noiseReduction !== 'none' && {
             input_audio_noise_reduction: {
@@ -150,16 +175,20 @@ export async function startTranscriptionSession(
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (event) => {
+      clearTimeout(connectionTimeout);
+      console.error('WebSocket error event:', event);
+
       const error = new Error(
         'WebSocket connection failed. Possible causes:\n' +
         '1. The gpt-4o-mini-transcribe model is not deployed in your Azure OpenAI resource\n' +
-        '2. The Realtime API may not be available in your Azure region\n' +
+        '2. The Realtime API may not be available in your Azure region (try East US2)\n' +
         '3. Check your Azure OpenAI deployment settings'
       );
 
       if (currentSession && currentSession.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         // Attempt reconnection
+        console.log(`Reconnection attempt ${currentSession.reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS}`);
         currentSession.reconnectAttempts++;
         setTimeout(() => {
           if (currentSession) {
@@ -189,10 +218,18 @@ function handleTranscriptionMessage(message: Record<string, unknown>): void {
 
   const { callbacks } = currentSession;
 
+  // Log all messages in development for debugging
+  if (import.meta.env.DEV) {
+    console.log('Transcription message:', message.type, message);
+  }
+
   switch (message.type) {
     case 'session.created':
     case 'session.updated':
+    case 'transcription_session.created':
+    case 'transcription_session.updated':
       // Session is ready for audio input
+      console.log('Transcription session ready');
       break;
 
     case 'conversation.item.input_audio_transcription.delta':
@@ -212,22 +249,35 @@ function handleTranscriptionMessage(message: Record<string, unknown>): void {
 
     case 'input_audio_buffer.speech_started':
       // User started speaking
+      console.log('Speech detected');
       break;
 
     case 'input_audio_buffer.speech_stopped':
       // User stopped speaking
+      console.log('Speech ended');
+      break;
+
+    case 'input_audio_buffer.committed':
+      // Audio buffer was committed for processing
+      break;
+
+    case 'input_audio_buffer.cleared':
+      // Audio buffer was cleared
       break;
 
     case 'error':
       // Handle error messages
-      const errorMessage = (message.error as { message?: string })?.message || 'Transcription error';
-      callbacks.onError?.(new Error(errorMessage));
+      const errorObj = message.error as { message?: string; code?: string } | undefined;
+      const errorMessage = errorObj?.message || 'Transcription error';
+      const errorCode = errorObj?.code || 'unknown';
+      console.error('Transcription error:', errorCode, errorMessage);
+      callbacks.onError?.(new Error(`${errorCode}: ${errorMessage}`));
       break;
 
     default:
       // Log unknown message types for debugging
       if (import.meta.env.DEV) {
-        console.log('Unknown transcription message:', message.type);
+        console.log('Unhandled transcription message type:', message.type);
       }
   }
 }
