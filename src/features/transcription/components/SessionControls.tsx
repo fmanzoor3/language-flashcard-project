@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTranscriptionStore } from '../../../stores/transcriptionStore';
 
 export default function SessionControls() {
@@ -12,17 +12,41 @@ export default function SessionControls() {
   } = useTranscriptionStore();
 
   const [duration, setDuration] = useState(0);
+  const accumulatedTimeRef = useRef(0);
+  const lastUpdateRef = useRef<number | null>(null);
 
-  // Update duration every second
+  // Update duration every second, but only when recording
   useEffect(() => {
-    if (!currentSession) return;
+    if (!currentSession) {
+      // Reset when session ends
+      accumulatedTimeRef.current = 0;
+      lastUpdateRef.current = null;
+      setDuration(0);
+      return;
+    }
 
-    const interval = setInterval(() => {
-      setDuration(Date.now() - currentSession.startedAt.getTime());
-    }, 1000);
+    const isRecording = currentSession.status === 'recording';
 
-    return () => clearInterval(interval);
-  }, [currentSession]);
+    if (isRecording) {
+      // Start or resume timing
+      if (lastUpdateRef.current === null) {
+        lastUpdateRef.current = Date.now();
+      }
+
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const elapsed = now - (lastUpdateRef.current || now);
+        accumulatedTimeRef.current += elapsed;
+        lastUpdateRef.current = now;
+        setDuration(accumulatedTimeRef.current);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      // Paused - stop tracking but keep accumulated time
+      lastUpdateRef.current = null;
+    }
+  }, [currentSession, currentSession?.status]);
 
   if (!currentSession) return null;
 
