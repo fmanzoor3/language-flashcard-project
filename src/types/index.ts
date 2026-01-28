@@ -523,8 +523,49 @@ export interface ExerciseProgress {
 // ============ XP & Level Types ============
 
 export interface XPEvent {
-  type: 'flashcard' | 'conversation' | 'crafting' | 'achievement' | 'streak' | 'listening';
+  type: 'flashcard' | 'conversation' | 'crafting' | 'achievement' | 'streak' | 'listening' | 'transcription';
   amount: number;
   description: string;
   timestamp: Date;
+}
+
+// ============ Live Transcription Types ============
+
+export type TranscriptionStatus = 'idle' | 'recording' | 'paused' | 'processing' | 'completed';
+export type NoiseReductionMode = 'near_field' | 'far_field' | 'none';
+
+export interface TranscriptionSegment {
+  id: string;
+  turkishText: string;
+  englishTranslation?: string;
+  timestamp: Date;
+  startTime: number;    // Offset from session start in ms
+  endTime?: number;
+  confidence?: number;
+}
+
+export interface TranscriptionSession {
+  id: string;
+  title?: string;
+  startedAt: Date;
+  endedAt?: Date;
+  segments: TranscriptionSegment[];
+  totalDuration: number;
+  status: TranscriptionStatus;
+  savedVocabulary: string[];  // IDs of flashcards created from this session
+}
+
+export interface TranscriptionSettings {
+  autoTranslate: boolean;
+  noiseReduction: NoiseReductionMode;
+  vadThreshold: number;       // Voice activity detection threshold (0-1)
+  silenceDuration: number;    // Silence duration before segment ends (ms)
+}
+
+export interface ExtractedVocabulary {
+  turkish: string;
+  english: string;
+  frequency: number;        // How many times it appeared in the session
+  contexts: string[];       // Surrounding sentences for context
+  isPhrase: boolean;
 }

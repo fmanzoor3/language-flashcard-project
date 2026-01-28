@@ -10,6 +10,7 @@ import type {
   ListeningLesson,
   ListeningLessonProgress,
   ConversationAssessment,
+  TranscriptionSession,
 } from '../../types';
 
 // Database schema for IndexedDB
@@ -24,6 +25,7 @@ const db = new Dexie('TurkishLearningApp') as Dexie & {
   listeningLessons: EntityTable<ListeningLesson, 'id'>;
   listeningProgress: EntityTable<ListeningLessonProgress, 'id'>;
   assessments: EntityTable<ConversationAssessment, 'id'>;
+  transcriptionSessions: EntityTable<TranscriptionSession, 'id'>;
 };
 
 db.version(2).stores({
@@ -84,6 +86,21 @@ db.version(5).stores({
       autoGatherQueue: state.autoGatherQueue || [],
     });
   }
+});
+
+// Version 6: Add transcription sessions table
+db.version(6).stores({
+  flashcards: 'id, status, nextReviewDate, category, createdAt',
+  conversations: 'id, scenarioId, startedAt, assessmentId',
+  reviewSessions: 'id, startedAt',
+  userProgress: 'id',
+  userSettings: 'id',
+  gameState: 'id',
+  scenarios: 'id, type, isPreset',
+  listeningLessons: 'id, difficulty, scenarioId, createdAt',
+  listeningProgress: 'id, lessonId, startedAt, completedAt',
+  assessments: 'id, conversationId, difficulty, createdAt',
+  transcriptionSessions: 'id, startedAt, status',
 });
 
 // Initialize default data if not exists

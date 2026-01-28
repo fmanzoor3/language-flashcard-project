@@ -5,6 +5,7 @@ import { useUserStore } from '../../../stores/userStore';
 import { isRealtimeAudioAvailable } from '../../../services/azure/realtimeAudioService';
 import LessonPlayer from './LessonPlayer';
 import LessonConfig, { type LessonConfigOptions } from './LessonConfig';
+import TranscriptionPage from '../../transcription/components/TranscriptionPage';
 import type { Scenario, DifficultyLevel, ListeningLesson, ScenarioType } from '../../../types';
 import { MASTERY_TIER_STYLES } from '../../../types';
 
@@ -27,7 +28,64 @@ const SCENARIO_EMOJIS: Record<string, string> = {
   custom: '✨',
 };
 
+type ListeningTab = 'lessons' | 'transcribe';
+
 export default function ListeningPage() {
+  const [activeTab, setActiveTab] = useState<ListeningTab>('lessons');
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Tab Navigation */}
+      <div className="bg-slate-800 border-b border-slate-700 px-4 shrink-0">
+        <div className="flex gap-1">
+          <button
+            onClick={() => setActiveTab('lessons')}
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === 'lessons'
+                ? 'text-emerald-400'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span>🎧</span>
+              <span>Lessons</span>
+            </span>
+            {activeTab === 'lessons' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('transcribe')}
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === 'transcribe'
+                ? 'text-emerald-400'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span>🎙️</span>
+              <span>Transcribe</span>
+            </span>
+            {activeTab === 'transcribe' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 min-h-0">
+        {activeTab === 'lessons' ? (
+          <LessonsContent />
+        ) : (
+          <TranscriptionPage />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LessonsContent() {
   const {
     lessons,
     currentLesson,
