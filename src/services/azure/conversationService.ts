@@ -448,9 +448,42 @@ export interface TranslationResult {
   isPhrase: boolean;
 }
 
+// In-memory cache for translations to avoid redundant API calls
+const translationCache = new Map<string, TranslationResult>();
+
+/**
+ * Get a cached translation if available
+ */
+export function getCachedTranslation(turkishText: string): TranslationResult | undefined {
+  const normalizedKey = turkishText.trim().toLowerCase();
+  return translationCache.get(normalizedKey);
+}
+
+/**
+ * Clear the translation cache (useful for testing or memory management)
+ */
+export function clearTranslationCache(): void {
+  translationCache.clear();
+}
+
+/**
+ * Get the current cache size
+ */
+export function getTranslationCacheSize(): number {
+  return translationCache.size;
+}
+
 export async function getWordTranslation(
   turkishText: string
 ): Promise<TranslationResult> {
+  const normalizedKey = turkishText.trim().toLowerCase();
+
+  // Check cache first
+  const cached = translationCache.get(normalizedKey);
+  if (cached) {
+    return cached;
+  }
+
   const isPhrase = turkishText.trim().includes(' ');
 
   const prompt = isPhrase
@@ -480,8 +513,12 @@ Word: "${turkishText}"
 
   try {
     const parsed = JSON.parse(response);
-    return { ...parsed, isPhrase };
+    const result: TranslationResult = { ...parsed, isPhrase };
+    // Cache the successful translation
+    translationCache.set(normalizedKey, result);
+    return result;
   } catch {
+    // Don't cache failed translations
     return {
       english: 'Translation unavailable',
       pronunciation: '',

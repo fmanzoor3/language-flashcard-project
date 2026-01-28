@@ -98,6 +98,7 @@ export default function ConversationsPage() {
     clearAssist,
     clearError,
     runAssessment,
+    reset,
   } = useConversationStore();
 
   const addCard = useFlashcardStore((state) => state.addCard);
@@ -119,6 +120,8 @@ export default function ConversationsPage() {
   const [newCategoryTurkish, setNewCategoryTurkish] = useState('');
   const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [newCategoryEmoji, setNewCategoryEmoji] = useState('📝');
+  const [showEmojiSearch, setShowEmojiSearch] = useState(false);
+  const [emojiSearchQuery, setEmojiSearchQuery] = useState('');
 
   // Lesson creation state
   const [newLessonDescription, setNewLessonDescription] = useState('');
@@ -139,6 +142,149 @@ export default function ConversationsPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const apiConfigured = isConfigured();
+
+  // Emoji data with search keywords
+  const EMOJI_DATA: Record<string, string[]> = {
+    // Places & Buildings
+    '🏠': ['home', 'house', 'building'],
+    '🏢': ['office', 'building', 'work'],
+    '🏫': ['school', 'education', 'university'],
+    '🏥': ['hospital', 'health', 'medical'],
+    '🏪': ['store', 'shop', 'convenience'],
+    '🏨': ['hotel', 'travel', 'accommodation'],
+    '🏛️': ['museum', 'government', 'building'],
+    '🏰': ['castle', 'history', 'building'],
+    '⛪': ['church', 'religion', 'building'],
+    '🕌': ['mosque', 'religion', 'building'],
+    '🏭': ['factory', 'work', 'industry'],
+    '🏗️': ['construction', 'building', 'work'],
+    // Transport & Travel
+    '✈️': ['airplane', 'travel', 'airport', 'flight'],
+    '🚗': ['car', 'driving', 'transport'],
+    '🚌': ['bus', 'transport', 'public'],
+    '🚆': ['train', 'transport', 'travel'],
+    '🚢': ['ship', 'boat', 'travel', 'sea'],
+    '🚁': ['helicopter', 'travel', 'transport'],
+    '🛫': ['departure', 'airport', 'travel'],
+    '🛬': ['arrival', 'airport', 'travel'],
+    '🚉': ['station', 'train', 'transport'],
+    '🚏': ['bus stop', 'transport', 'public'],
+    '⛽': ['gas', 'fuel', 'car'],
+    '🗺️': ['map', 'travel', 'navigation'],
+    // Food & Drink
+    '☕': ['coffee', 'cafe', 'drink', 'food'],
+    '🍕': ['pizza', 'food', 'restaurant'],
+    '🍔': ['burger', 'food', 'restaurant', 'fast food'],
+    '🍜': ['noodles', 'food', 'asian', 'restaurant'],
+    '🍣': ['sushi', 'food', 'japanese', 'restaurant'],
+    '🍰': ['cake', 'dessert', 'food', 'sweet'],
+    '🍷': ['wine', 'drink', 'alcohol', 'restaurant'],
+    '🍺': ['beer', 'drink', 'alcohol', 'bar'],
+    '🥗': ['salad', 'food', 'healthy'],
+    '🥐': ['croissant', 'bakery', 'food', 'breakfast'],
+    '🧁': ['cupcake', 'dessert', 'sweet', 'food'],
+    '🍳': ['cooking', 'food', 'breakfast', 'kitchen'],
+    // Activities & Hobbies
+    '🎓': ['graduation', 'education', 'school', 'university'],
+    '🎭': ['theater', 'drama', 'arts', 'performance'],
+    '🎵': ['music', 'song', 'audio'],
+    '🎬': ['movie', 'film', 'cinema', 'entertainment'],
+    '🎮': ['gaming', 'video games', 'entertainment'],
+    '🎨': ['art', 'painting', 'creative'],
+    '📚': ['books', 'reading', 'library', 'education'],
+    '✍️': ['writing', 'author', 'creative'],
+    '🎤': ['singing', 'karaoke', 'music', 'microphone'],
+    '🎸': ['guitar', 'music', 'instrument'],
+    '🎹': ['piano', 'music', 'instrument'],
+    '🎯': ['target', 'goal', 'darts'],
+    // Sports & Fitness
+    '🏋️': ['gym', 'fitness', 'exercise', 'weights'],
+    '⚽': ['soccer', 'football', 'sports'],
+    '🏀': ['basketball', 'sports'],
+    '🎾': ['tennis', 'sports'],
+    '🏊': ['swimming', 'pool', 'sports'],
+    '🚴': ['cycling', 'bike', 'sports'],
+    '🧘': ['yoga', 'meditation', 'wellness'],
+    '🏃': ['running', 'jogging', 'sports'],
+    '⛳': ['golf', 'sports'],
+    '🎿': ['skiing', 'winter', 'sports'],
+    '🏄': ['surfing', 'beach', 'sports'],
+    '🥊': ['boxing', 'martial arts', 'sports'],
+    // Nature & Outdoors
+    '🌳': ['tree', 'nature', 'park', 'forest'],
+    '🏖️': ['beach', 'vacation', 'summer'],
+    '⛰️': ['mountain', 'hiking', 'nature'],
+    '🏕️': ['camping', 'outdoors', 'nature'],
+    '🌊': ['ocean', 'sea', 'water', 'beach'],
+    '🌸': ['flower', 'spring', 'nature'],
+    '🌻': ['sunflower', 'flower', 'nature'],
+    '🍀': ['clover', 'luck', 'nature'],
+    '🌴': ['palm', 'tropical', 'beach'],
+    '🏞️': ['park', 'nature', 'landscape'],
+    '🌅': ['sunrise', 'sunset', 'morning'],
+    '🌙': ['moon', 'night', 'evening'],
+    // Work & Business
+    '💼': ['business', 'work', 'office', 'briefcase'],
+    '💻': ['computer', 'laptop', 'technology', 'work'],
+    '📊': ['chart', 'data', 'business', 'presentation'],
+    '📈': ['growth', 'business', 'statistics'],
+    '🏦': ['bank', 'money', 'finance'],
+    '📱': ['phone', 'mobile', 'technology'],
+    '🖥️': ['computer', 'desktop', 'technology'],
+    '📋': ['clipboard', 'list', 'work'],
+    '📁': ['folder', 'files', 'work'],
+    '🗃️': ['files', 'archive', 'office'],
+    '📞': ['phone', 'call', 'communication'],
+    '✉️': ['email', 'mail', 'letter', 'communication'],
+    // Shopping & Fashion
+    '🛍️': ['shopping', 'bags', 'retail'],
+    '👗': ['dress', 'fashion', 'clothing'],
+    '👠': ['shoes', 'heels', 'fashion'],
+    '👔': ['tie', 'formal', 'business', 'clothing'],
+    '💄': ['makeup', 'beauty', 'cosmetics'],
+    '💎': ['jewelry', 'diamond', 'luxury'],
+    '👜': ['purse', 'bag', 'fashion'],
+    '🧥': ['coat', 'jacket', 'clothing'],
+    '👕': ['shirt', 'tshirt', 'clothing'],
+    '👖': ['pants', 'jeans', 'clothing'],
+    '🕶️': ['sunglasses', 'fashion', 'accessories'],
+    '⌚': ['watch', 'time', 'accessories'],
+    // Health & Wellness
+    '💊': ['medicine', 'pharmacy', 'health'],
+    '🩺': ['doctor', 'medical', 'health'],
+    '🧴': ['lotion', 'skincare', 'beauty'],
+    '💆': ['spa', 'massage', 'relaxation'],
+    '🦷': ['dentist', 'teeth', 'dental'],
+    '👁️': ['eye', 'vision', 'optician'],
+    '❤️': ['heart', 'love', 'health'],
+    '🧠': ['brain', 'mind', 'thinking'],
+    '💪': ['strong', 'muscle', 'fitness'],
+    '🩹': ['bandage', 'first aid', 'health'],
+    // Symbols & General
+    '📝': ['note', 'writing', 'document'],
+    '✨': ['sparkle', 'magic', 'special'],
+    '🌟': ['star', 'favorite', 'special'],
+    '💡': ['idea', 'lightbulb', 'creative'],
+    '🔑': ['key', 'security', 'important'],
+    '🎁': ['gift', 'present', 'celebration'],
+    '🎉': ['party', 'celebration', 'event'],
+    '🔔': ['bell', 'notification', 'alert'],
+    '📌': ['pin', 'location', 'important'],
+    '🏆': ['trophy', 'winner', 'achievement'],
+    '🎪': ['circus', 'entertainment', 'event'],
+    '🎠': ['carousel', 'amusement', 'fun'],
+  };
+
+  const getFilteredEmojis = (query: string): string[] => {
+    const allEmojis = Object.keys(EMOJI_DATA);
+    if (!query.trim()) return allEmojis;
+
+    const lowerQuery = query.toLowerCase();
+    return allEmojis.filter(emoji => {
+      const keywords = EMOJI_DATA[emoji];
+      return keywords.some(keyword => keyword.includes(lowerQuery));
+    });
+  };
 
   useEffect(() => {
     loadScenarios();
@@ -182,6 +328,12 @@ export default function ConversationsPage() {
     await runAssessment();
   };
 
+  const handleExitWithoutReview = () => {
+    if (confirm('Exit without review? Your conversation progress will not be assessed.')) {
+      reset();
+    }
+  };
+
   const handleCreateCustomScenario = async () => {
     if (!customDescription.trim()) return;
 
@@ -211,6 +363,8 @@ export default function ConversationsPage() {
       setNewCategoryTurkish('');
       setNewCategoryDescription('');
       setNewCategoryEmoji('📝');
+      setShowEmojiSearch(false);
+      setEmojiSearchQuery('');
     } catch {
       // Error is handled in store
     }
@@ -434,9 +588,17 @@ export default function ConversationsPage() {
               </div>
             )}
             <button
+              onClick={handleExitWithoutReview}
+              disabled={isAssessing || isStreaming}
+              className="text-sm text-slate-500 hover:text-slate-300 px-2 py-1 rounded-lg hover:bg-slate-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exit without review"
+            >
+              ✕
+            </button>
+            <button
               onClick={handleEndConversation}
               disabled={isAssessing || isStreaming}
-              className="text-sm text-slate-400 hover:text-white px-3 py-1 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-sm text-emerald-400 hover:text-emerald-300 px-3 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isAssessing ? 'Assessing...' : 'End & Review'}
             </button>
@@ -1231,25 +1393,82 @@ export default function ConversationsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-1">
+                <label className="block text-sm text-slate-400 mb-2">
                   Emoji Icon
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {['📝', '☕', '🎓', '✈️', '🏠', '🎭', '🏋️', '🎵', '🌳', '🏪', '🎬', '🍕'].map((emoji) => (
+                {!showEmojiSearch ? (
+                  <>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {['📝', '☕', '🎓', '✈️', '🏠', '💼', '🏋️', '🎵', '🛍️', '💊', '🍕', '🌳'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setNewCategoryEmoji(emoji)}
+                          className={`text-2xl p-2 rounded-lg transition-colors ${
+                            newCategoryEmoji === emoji
+                              ? 'bg-emerald-500/30 ring-2 ring-emerald-500'
+                              : 'bg-slate-700 hover:bg-slate-600'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
                     <button
-                      key={emoji}
                       type="button"
-                      onClick={() => setNewCategoryEmoji(emoji)}
-                      className={`text-2xl p-2 rounded-lg transition-colors ${
-                        newCategoryEmoji === emoji
-                          ? 'bg-emerald-500/30 border border-emerald-500'
-                          : 'bg-slate-700 hover:bg-slate-600'
-                      }`}
+                      onClick={() => setShowEmojiSearch(true)}
+                      className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
                     >
-                      {emoji}
+                      More emojis...
                     </button>
-                  ))}
-                </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={emojiSearchQuery}
+                      onChange={(e) => setEmojiSearchQuery(e.target.value)}
+                      placeholder="Search emojis (e.g., food, travel, music)..."
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+                      autoFocus
+                    />
+                    <div className="max-h-32 overflow-y-auto bg-slate-700/50 rounded-lg p-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {getFilteredEmojis(emojiSearchQuery).map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => {
+                              setNewCategoryEmoji(emoji);
+                              setShowEmojiSearch(false);
+                              setEmojiSearchQuery('');
+                            }}
+                            className={`text-xl p-1.5 rounded transition-colors ${
+                              newCategoryEmoji === emoji
+                                ? 'bg-emerald-500/30 ring-2 ring-emerald-500'
+                                : 'hover:bg-slate-600'
+                            }`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowEmojiSearch(false);
+                        setEmojiSearchQuery('');
+                      }}
+                      className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                    >
+                      ← Back to quick selection
+                    </button>
+                  </div>
+                )}
+                <p className="text-xs text-slate-500 mt-2">
+                  Selected: {newCategoryEmoji}
+                </p>
               </div>
             </div>
 
@@ -1261,6 +1480,8 @@ export default function ConversationsPage() {
                   setNewCategoryTurkish('');
                   setNewCategoryDescription('');
                   setNewCategoryEmoji('📝');
+                  setShowEmojiSearch(false);
+                  setEmojiSearchQuery('');
                 }}
                 className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors"
               >
