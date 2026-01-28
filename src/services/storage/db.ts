@@ -103,6 +103,30 @@ db.version(6).stores({
   transcriptionSessions: 'id, startedAt, status',
 });
 
+// Version 7: Add gameModeEnabled setting
+db.version(7).stores({
+  flashcards: 'id, status, nextReviewDate, category, createdAt',
+  conversations: 'id, scenarioId, startedAt, assessmentId',
+  reviewSessions: 'id, startedAt',
+  userProgress: 'id',
+  userSettings: 'id',
+  gameState: 'id',
+  scenarios: 'id, type, isPreset',
+  listeningLessons: 'id, difficulty, scenarioId, createdAt',
+  listeningProgress: 'id, lessonId, startedAt, completedAt',
+  assessments: 'id, conversationId, difficulty, createdAt',
+  transcriptionSessions: 'id, startedAt, status',
+}).upgrade(async (tx) => {
+  // Add gameModeEnabled to existing user settings
+  const settings = await tx.table('userSettings').toArray();
+  for (const setting of settings) {
+    await tx.table('userSettings').put({
+      ...setting,
+      gameModeEnabled: setting.gameModeEnabled ?? true, // Default to enabled
+    });
+  }
+});
+
 // Initialize default data if not exists
 export async function initializeDatabase() {
   const progressCount = await db.userProgress.count();
@@ -128,6 +152,7 @@ export async function initializeDatabase() {
       soundEffectsEnabled: true,
       preferredResponseMode: 'hybrid',
       difficultyLevel: 'A1',
+      gameModeEnabled: true,
     });
   }
 

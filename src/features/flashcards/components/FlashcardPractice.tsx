@@ -32,6 +32,9 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
     setActivePet,
   } = useGameStore();
   const progress = useUserStore((state) => state.progress);
+  const settings = useUserStore((state) => state.settings);
+
+  const gameModeEnabled = settings?.gameModeEnabled ?? true;
 
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -65,7 +68,7 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
   return (
     <div className="h-full flex flex-col md:flex-row overflow-hidden">
       {/* Flashcard Section */}
-      <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0 md:h-full overflow-hidden">
+      <div className={`flex-1 flex flex-col p-4 md:p-6 min-h-0 md:h-full overflow-hidden ${!gameModeEnabled ? 'max-w-4xl mx-auto w-full' : ''}`}>
         {!currentSession ? (
           // Session Start / Empty State
           <div className="flex-1 flex flex-col items-center justify-center">
@@ -249,61 +252,63 @@ export default function FlashcardPractice({ onSwitchToCards }: FlashcardPractice
         )}
       </div>
 
-      {/* Game Section */}
-      <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 flex flex-col shrink-0">
-        {/* Island Visualization */}
-        <div className="flex-1 min-h-0">
-          <IslandView
-            currentAction={currentAction}
-            activePet={activePet}
-            unlockedLocations={unlockedLocations}
-            isCompact={false}
-          />
-        </div>
-
-        {/* Bottom Panel: Pet Selector + Mini Inventory */}
-        <div className="border-t border-slate-700 p-3">
-          {/* Pet selector row */}
-          {unlockedPets.length > 0 && (
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Active Pet</span>
-              <PetSelector
-                unlockedPets={unlockedPets}
-                activePet={activePet}
-                onSetActivePet={setActivePet}
-              />
-            </div>
-          )}
-
-          {/* Mini Inventory */}
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-slate-400">Recent Loot</span>
-            <span className="text-xs text-slate-500">
-              Level {progress?.level || 1}
-            </span>
+      {/* Game Section - Only shown when game mode is enabled */}
+      {gameModeEnabled && (
+        <div className="h-64 md:h-full md:w-1/2 lg:w-2/5 bg-slate-800/50 border-t md:border-t-0 md:border-l border-slate-700 flex flex-col shrink-0">
+          {/* Island Visualization */}
+          <div className="flex-1 min-h-0">
+            <IslandView
+              currentAction={currentAction}
+              activePet={activePet}
+              unlockedLocations={unlockedLocations}
+              isCompact={false}
+            />
           </div>
-          <div className="flex gap-1 overflow-x-auto">
-            {inventory.slice(0, 8).map((item) => {
-              const resource = RESOURCES[item.resourceId];
-              return (
-                <div
-                  key={item.resourceId}
-                  className="flex items-center gap-1 bg-slate-700/50 px-2 py-1 rounded text-sm"
-                  title={resource?.name}
-                >
-                  <span>{resource?.emoji}</span>
-                  <span className="text-xs">{item.quantity}</span>
-                </div>
-              );
-            })}
-            {inventory.length === 0 && (
-              <span className="text-xs text-slate-500">
-                Review flashcards to gather resources!
-              </span>
+
+          {/* Bottom Panel: Pet Selector + Mini Inventory */}
+          <div className="border-t border-slate-700 p-3">
+            {/* Pet selector row */}
+            {unlockedPets.length > 0 && (
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">Active Pet</span>
+                <PetSelector
+                  unlockedPets={unlockedPets}
+                  activePet={activePet}
+                  onSetActivePet={setActivePet}
+                />
+              </div>
             )}
+
+            {/* Mini Inventory */}
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-slate-400">Recent Loot</span>
+              <span className="text-xs text-slate-500">
+                Level {progress?.level || 1}
+              </span>
+            </div>
+            <div className="flex gap-1 overflow-x-auto">
+              {inventory.slice(0, 8).map((item) => {
+                const resource = RESOURCES[item.resourceId];
+                return (
+                  <div
+                    key={item.resourceId}
+                    className="flex items-center gap-1 bg-slate-700/50 px-2 py-1 rounded text-sm"
+                    title={resource?.name}
+                  >
+                    <span>{resource?.emoji}</span>
+                    <span className="text-xs">{item.quantity}</span>
+                  </div>
+                );
+              })}
+              {inventory.length === 0 && (
+                <span className="text-xs text-slate-500">
+                  Review flashcards to gather resources!
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

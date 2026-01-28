@@ -8,6 +8,7 @@ import FlashcardsPage from './features/flashcards/components/FlashcardsPage';
 import ConversationsPage from './features/conversations/components/ConversationsPage';
 import ListeningPage from './features/listening/components/ListeningPage';
 import ProgressionPage from './features/game/components/ProgressionPage';
+import SettingsPage from './features/settings/components/SettingsPage';
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -15,7 +16,10 @@ function App() {
   const loadCards = useFlashcardStore((state) => state.loadCards);
   const loadGameState = useGameStore((state) => state.loadGameState);
   const progress = useUserStore((state) => state.progress);
+  const settings = useUserStore((state) => state.settings);
   const getXPProgress = useUserStore((state) => state.getXPProgress);
+
+  const gameModeEnabled = settings?.gameModeEnabled ?? true;
 
   useEffect(() => {
     async function init() {
@@ -84,7 +88,8 @@ function App() {
             <Route path="/" element={<FlashcardsPage />} />
             <Route path="/conversations" element={<ConversationsPage />} />
             <Route path="/listening" element={<ListeningPage />} />
-            <Route path="/progression" element={<ProgressionPage />} />
+            {gameModeEnabled && <Route path="/progression" element={<ProgressionPage />} />}
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>
 
@@ -124,16 +129,29 @@ function App() {
               <span className="text-xl mb-1">🎧</span>
               <span>Listening</span>
             </NavLink>
+            {gameModeEnabled && (
+              <NavLink
+                to="/progression"
+                className={({ isActive }) =>
+                  `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
+                    isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+                  }`
+                }
+              >
+                <span className="text-xl mb-1">🏝️</span>
+                <span>Island</span>
+              </NavLink>
+            )}
             <NavLink
-              to="/progression"
+              to="/settings"
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center py-3 text-sm transition-colors ${
                   isActive ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
             >
-              <span className="text-xl mb-1">🏝️</span>
-              <span>Island</span>
+              <span className="text-xl mb-1">⚙️</span>
+              <span>Settings</span>
             </NavLink>
           </div>
         </nav>

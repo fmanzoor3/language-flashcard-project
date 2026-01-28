@@ -19,6 +19,7 @@ export interface UserSettings {
   soundEffectsEnabled: boolean;
   preferredResponseMode: ResponseMode;
   difficultyLevel: DifficultyLevel;
+  gameModeEnabled: boolean; // Toggle island game features on/off
 }
 
 export type ResponseMode = 'free-text' | 'word-bank' | 'hybrid';
