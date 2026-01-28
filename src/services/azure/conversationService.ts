@@ -392,6 +392,54 @@ Respond with ONLY a JSON object (no markdown code blocks) in this exact format:
   }
 }
 
+/**
+ * Generate a lesson within a specific category
+ */
+export async function generateCustomLesson(
+  categoryType: string,
+  categoryTitle: string,
+  userDescription: string,
+  difficulty: DifficultyLevel
+): Promise<Scenario> {
+  const prompt = `Create a Turkish language learning lesson for the "${categoryTitle}" category based on this description:
+"${userDescription}"
+
+The difficulty level is ${difficulty}.
+
+Respond with ONLY a JSON object (no markdown code blocks) in this exact format:
+{
+  "title": "English title for the specific lesson",
+  "titleTurkish": "Turkish title",
+  "description": "Brief description of what the user will practice in this lesson",
+  "vocabularyFocus": ["word1", "word2", "word3", "word4", "word5"],
+  "grammarFocus": ["grammar point 1", "grammar point 2"],
+  "customPrompt": "Detailed instructions for the AI conversation partner about their role and the scenario context"
+}`;
+
+  const response = await chatCompletion(
+    [{ role: 'user', content: prompt }],
+    { model: 'gpt-4o-mini', temperature: 0.7 }
+  );
+
+  try {
+    const parsed = JSON.parse(response);
+    return {
+      id: `lesson-${Date.now()}`,
+      type: categoryType,
+      title: parsed.title,
+      titleTurkish: parsed.titleTurkish,
+      description: parsed.description,
+      difficulty,
+      vocabularyFocus: parsed.vocabularyFocus,
+      grammarFocus: parsed.grammarFocus,
+      customPrompt: parsed.customPrompt,
+      isPreset: false,
+    };
+  } catch {
+    throw new Error('Failed to generate lesson. Please try again.');
+  }
+}
+
 export interface TranslationResult {
   english: string;
   pronunciation: string;

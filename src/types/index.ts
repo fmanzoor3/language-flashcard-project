@@ -231,14 +231,28 @@ export const PET_UNLOCK_LEVELS: Record<PetType, number> = {
 
 // ============ Conversation Types ============
 
-export type ScenarioType =
+/** Preset scenario types */
+export type PresetScenarioType =
   | 'restaurant'
   | 'shopping'
   | 'work'
   | 'travel'
   | 'healthcare'
-  | 'social'
-  | 'custom';
+  | 'social';
+
+/** All scenario types (preset + custom) */
+export type ScenarioType = PresetScenarioType | string;
+
+/** Custom scenario category created by user */
+export interface CustomScenarioCategory {
+  id: string;
+  type: string; // The type identifier used in scenarios
+  title: string;
+  titleTurkish: string;
+  description: string;
+  emoji: string;
+  createdAt: Date;
+}
 
 export interface Scenario {
   id: string;

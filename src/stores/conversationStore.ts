@@ -4,6 +4,7 @@ import {
   startConversation,
   sendMessage,
   generateCustomScenario,
+  generateCustomLesson,
   getWordTranslation,
   getAssistSuggestions,
   PRESET_SCENARIOS,
@@ -17,6 +18,7 @@ import { useUserStore } from './userStore';
 import { useFlashcardStore } from './flashcardStore';
 import type {
   Scenario,
+  CustomScenarioCategory,
   Conversation,
   ConversationMessage,
   ConversationAssessment,
@@ -27,6 +29,7 @@ import type {
 interface ConversationStore {
   // State
   scenarios: Scenario[];
+  customCategories: CustomScenarioCategory[];
   currentScenario: Scenario | null;
   currentConversation: Conversation | null;
   messages: ConversationMessage[];
@@ -60,6 +63,10 @@ interface ConversationStore {
   sendUserMessage: (message: string) => Promise<void>;
   endConversation: () => Promise<void>;
   createCustomScenario: (description: string, difficulty: DifficultyLevel) => Promise<Scenario>;
+  createCustomCategory: (title: string, titleTurkish: string, description: string, emoji: string) => Promise<CustomScenarioCategory>;
+  createLessonInCategory: (categoryType: string, description: string, difficulty: DifficultyLevel) => Promise<Scenario>;
+  deleteScenario: (scenarioId: string) => Promise<void>;
+  deleteCategory: (categoryId: string) => Promise<void>;
   addWordToFlashcards: (turkish: string) => Promise<void>;
   requestAssist: () => Promise<void>;
   clearAssist: () => void;
@@ -78,6 +85,7 @@ const XP_CONVERSATION_COMPLETE = 25;
 
 export const useConversationStore = create<ConversationStore>((set, get) => ({
   scenarios: PRESET_SCENARIOS,
+  customCategories: [],
   currentScenario: null,
   currentConversation: null,
   messages: [],
@@ -103,10 +111,12 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   showAssessmentModal: false,
 
   loadScenarios: async () => {
-    // Load any custom scenarios from database
+    // Load any custom scenarios and categories from database
     const customScenarios = await db.scenarios?.toArray() || [];
+    const customCategories = await db.scenarioCategories?.toArray() || [];
     set({
       scenarios: [...PRESET_SCENARIOS, ...customScenarios],
+      customCategories,
     });
   },
 
@@ -329,6 +339,106 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
         isLoading: false,
       });
       throw error;
+    }
+  },
+
+  createCustomCategory: async (title: string, titleTurkish: string, description: string, emoji: string) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // Generate a unique type identifier from the title
+      const typeId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      const category: CustomScenarioCategory = {
+        id: `cat-${Date.now()}`,
+        type: typeId,
+        title,
+        titleTurkish,
+        description,
+        emoji,
+        createdAt: new Date(),
+      };
+
+      // Save to database
+      await db.scenarioCategories.add(category);
+
+      set((state) => ({
+        customCategories: [...state.customCategories, category],
+        isLoading: false,
+      }));
+
+      return category;
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to create category',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  createLessonInCategory: async (categoryType: string, description: string, difficulty: DifficultyLevel) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // Find the category to get its context
+      const category = get().customCategories.find(c => c.type === categoryType);
+      const categoryTitle = category?.title || categoryType;
+
+      const scenario = await generateCustomLesson(categoryType, categoryTitle, description, difficulty);
+
+      // Save to database for persistence
+      await db.scenarios?.add(scenario);
+
+      set((state) => ({
+        scenarios: [...state.scenarios, scenario],
+        isLoading: false,
+      }));
+
+      return scenario;
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to create lesson',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  deleteScenario: async (scenarioId: string) => {
+    try {
+      await db.scenarios?.delete(scenarioId);
+      set((state) => ({
+        scenarios: state.scenarios.filter(s => s.id !== scenarioId),
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to delete scenario',
+      });
+    }
+  },
+
+  deleteCategory: async (categoryId: string) => {
+    try {
+      const category = get().customCategories.find(c => c.id === categoryId);
+      if (category) {
+        // Delete all scenarios in this category
+        const scenariosToDelete = get().scenarios.filter(s => s.type === category.type && !s.isPreset);
+        for (const scenario of scenariosToDelete) {
+          await db.scenarios?.delete(scenario.id);
+        }
+        // Delete the category
+        await db.scenarioCategories?.delete(categoryId);
+
+        set((state) => ({
+          customCategories: state.customCategories.filter(c => c.id !== categoryId),
+          scenarios: state.scenarios.filter(s => s.type !== category.type || s.isPreset),
+        }));
+      }
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to delete category',
+      });
     }
   },
 

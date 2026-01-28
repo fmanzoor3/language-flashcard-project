@@ -7,6 +7,7 @@ import type {
   UserSettings,
   GameState,
   Scenario,
+  CustomScenarioCategory,
   ListeningLesson,
   ListeningLessonProgress,
   ConversationAssessment,
@@ -22,6 +23,7 @@ const db = new Dexie('TurkishLearningApp') as Dexie & {
   userSettings: EntityTable<UserSettings & { id: string }, 'id'>;
   gameState: EntityTable<GameState & { id: string }, 'id'>;
   scenarios: EntityTable<Scenario, 'id'>;
+  scenarioCategories: EntityTable<CustomScenarioCategory, 'id'>;
   listeningLessons: EntityTable<ListeningLesson, 'id'>;
   listeningProgress: EntityTable<ListeningLessonProgress, 'id'>;
   assessments: EntityTable<ConversationAssessment, 'id'>;
@@ -125,6 +127,22 @@ db.version(7).stores({
       gameModeEnabled: setting.gameModeEnabled ?? true, // Default to enabled
     });
   }
+});
+
+// Version 8: Add custom scenario categories table
+db.version(8).stores({
+  flashcards: 'id, status, nextReviewDate, category, createdAt',
+  conversations: 'id, scenarioId, startedAt, assessmentId',
+  reviewSessions: 'id, startedAt',
+  userProgress: 'id',
+  userSettings: 'id',
+  gameState: 'id',
+  scenarios: 'id, type, isPreset',
+  scenarioCategories: 'id, type, createdAt',
+  listeningLessons: 'id, difficulty, scenarioId, createdAt',
+  listeningProgress: 'id, lessonId, startedAt, completedAt',
+  assessments: 'id, conversationId, difficulty, createdAt',
+  transcriptionSessions: 'id, startedAt, status',
 });
 
 // Initialize default data if not exists
