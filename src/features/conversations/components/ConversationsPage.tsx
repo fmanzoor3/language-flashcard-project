@@ -842,7 +842,7 @@ export default function ConversationsPage() {
               </div>
             </button>
 
-            {/* Custom Scenario Button */}
+            {/* Quick Custom Scenario Button */}
             <button
               onClick={() => setShowCustomModal(true)}
               disabled={!apiConfigured}
@@ -851,9 +851,9 @@ export default function ConversationsPage() {
               <div className="flex items-center gap-3">
                 <span className="text-3xl">✨</span>
                 <div className="flex-1 text-left">
-                  <h3 className="font-bold">Create Custom Scenario</h3>
+                  <h3 className="font-bold">Quick Custom Scenario</h3>
                   <p className="text-sm text-slate-400 mt-1">
-                    Describe any situation and AI will generate a conversation for you
+                    One-off practice: describe any situation and start practicing immediately
                   </p>
                 </div>
               </div>
@@ -971,11 +971,11 @@ export default function ConversationsPage() {
         )}
       </div>
 
-      {/* Custom Scenario Modal */}
+      {/* Quick Custom Scenario Modal */}
       {showCustomModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Create Custom Scenario</h2>
+            <h2 className="text-xl font-bold mb-4">Quick Custom Scenario</h2>
 
             <div className="space-y-4">
               <div>
