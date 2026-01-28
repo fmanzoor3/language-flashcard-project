@@ -67,6 +67,7 @@ interface ConversationStore {
   createLessonInCategory: (categoryType: string, description: string, difficulty: DifficultyLevel) => Promise<Scenario>;
   deleteScenario: (scenarioId: string) => Promise<void>;
   deleteCategory: (categoryId: string) => Promise<void>;
+  moveScenarioToCategory: (scenarioId: string, targetCategoryType: string) => Promise<void>;
   addWordToFlashcards: (turkish: string) => Promise<void>;
   requestAssist: () => Promise<void>;
   clearAssist: () => void;
@@ -438,6 +439,32 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to delete category',
+      });
+    }
+  },
+
+  moveScenarioToCategory: async (scenarioId: string, targetCategoryType: string) => {
+    try {
+      const scenario = get().scenarios.find(s => s.id === scenarioId);
+      if (!scenario) {
+        throw new Error('Scenario not found');
+      }
+
+      // Update the scenario's type to the target category
+      const updatedScenario = { ...scenario, type: targetCategoryType as Scenario['type'] };
+
+      // Update in database
+      await db.scenarios?.update(scenarioId, { type: targetCategoryType });
+
+      // Update in state
+      set((state) => ({
+        scenarios: state.scenarios.map(s =>
+          s.id === scenarioId ? updatedScenario : s
+        ),
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to move scenario',
       });
     }
   },

@@ -93,6 +93,7 @@ export default function ConversationsPage() {
     createLessonInCategory,
     deleteScenario,
     deleteCategory,
+    moveScenarioToCategory,
     requestAssist,
     clearAssist,
     clearError,
@@ -122,6 +123,10 @@ export default function ConversationsPage() {
   // Lesson creation state
   const [newLessonDescription, setNewLessonDescription] = useState('');
   const [newLessonDifficulty, setNewLessonDifficulty] = useState<DifficultyLevel>('A2');
+
+  // Move scenario to category state
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [scenarioToMove, setScenarioToMove] = useState<Scenario | null>(null);
 
   // Track which scenario type is currently selected (for drill-down view)
   const [selectedScenarioType, setSelectedScenarioType] = useState<ScenarioType | null>(null);
@@ -238,6 +243,19 @@ export default function ConversationsPage() {
       await deleteCategory(categoryId);
       setSelectedScenarioType(null);
     }
+  };
+
+  const handleOpenMoveModal = (scenario: Scenario, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScenarioToMove(scenario);
+    setShowMoveModal(true);
+  };
+
+  const handleMoveToCategory = async (targetCategoryType: string) => {
+    if (!scenarioToMove) return;
+    await moveScenarioToCategory(scenarioToMove.id, targetCategoryType);
+    setShowMoveModal(false);
+    setScenarioToMove(null);
   };
 
   const handleSelectText = async (text: string) => {
@@ -648,6 +666,10 @@ export default function ConversationsPage() {
   const selectedCustomCategory = customCategories.find(c => c.type === selectedScenarioType);
   const isCustomCategory = !!selectedCustomCategory;
 
+  // Quick scenarios are custom one-off scenarios (type: 'custom')
+  const quickScenarios = scenarios.filter(s => s.type === 'custom' && !s.isPreset);
+  const isQuickScenariosView = selectedScenarioType === 'custom';
+
   // Scenario selection view
   return (
     <div className="h-full overflow-y-auto">
@@ -665,11 +687,11 @@ export default function ConversationsPage() {
                 </button>
                 <div>
                   <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <span>{isCustomCategory ? selectedCustomCategory.emoji : SCENARIO_EMOJIS[selectedScenarioType]}</span>
-                    {isCustomCategory ? selectedCustomCategory.title : (SCENARIO_TYPE_INFO[selectedScenarioType]?.title || selectedScenarioType)}
+                    <span>{isQuickScenariosView ? '✨' : (isCustomCategory ? selectedCustomCategory.emoji : SCENARIO_EMOJIS[selectedScenarioType])}</span>
+                    {isQuickScenariosView ? 'Quick Scenarios' : (isCustomCategory ? selectedCustomCategory.title : (SCENARIO_TYPE_INFO[selectedScenarioType]?.title || selectedScenarioType))}
                   </h2>
                   <p className="text-slate-400">
-                    Choose a lesson to practice
+                    {isQuickScenariosView ? 'Your saved one-off practice scenarios' : 'Choose a lesson to practice'}
                   </p>
                 </div>
               </div>
@@ -824,6 +846,28 @@ export default function ConversationsPage() {
                   </button>
                 );
               })}
+
+              {/* Quick Scenarios - shows saved one-off custom scenarios */}
+              {quickScenarios.length > 0 && (
+                <button
+                  onClick={() => setSelectedScenarioType('custom')}
+                  className="text-left p-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:border-slate-500 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-3xl">✨</span>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-slate-100">Quick Scenarios</h3>
+                      <p className="text-sm text-slate-400 mt-1">Senaryolar</p>
+                      <p className="text-sm text-slate-500 mt-2">
+                        Your saved quick scenarios from one-off practice sessions
+                      </p>
+                      <p className="text-xs text-slate-500 mt-2">
+                        {quickScenarios.length} scenario{quickScenarios.length !== 1 ? 's' : ''} saved
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
 
             {/* Create Category Button */}
@@ -916,7 +960,7 @@ export default function ConversationsPage() {
                     className="w-full text-left"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="text-2xl">{isCustomCategory ? selectedCustomCategory?.emoji : SCENARIO_EMOJIS[scenario.type]}</span>
+                      <span className="text-2xl">{isQuickScenariosView ? '✨' : (isCustomCategory ? selectedCustomCategory?.emoji : SCENARIO_EMOJIS[scenario.type])}</span>
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="font-bold text-slate-100">{scenario.title}</h3>
@@ -938,36 +982,50 @@ export default function ConversationsPage() {
                       </div>
                     </div>
                   </button>
-                  {/* Delete button for custom lessons */}
+                  {/* Action buttons for custom lessons */}
                   {!scenario.isPreset && (
-                    <button
-                      onClick={(e) => handleDeleteScenario(scenario.id, e)}
-                      className="absolute top-2 right-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                      title="Delete lesson"
-                    >
-                      ✕
-                    </button>
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Move to category button - only for quick scenarios */}
+                      {isQuickScenariosView && (customCategories.length > 0 || presetTypes.length > 0) && (
+                        <button
+                          onClick={(e) => handleOpenMoveModal(scenario, e)}
+                          className="text-slate-500 hover:text-emerald-400 p-1"
+                          title="Move to category"
+                        >
+                          📁
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => handleDeleteScenario(scenario.id, e)}
+                        className="text-slate-500 hover:text-red-400 p-1"
+                        title="Delete lesson"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Add Lesson Button */}
-            <button
-              onClick={() => setShowLessonModal(true)}
-              disabled={!apiConfigured}
-              className="w-full p-4 rounded-xl border border-dashed border-slate-600 bg-slate-800/30 hover:border-emerald-500/50 hover:bg-slate-800/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">➕</span>
-                <div className="flex-1 text-left">
-                  <h3 className="font-bold">Add New Lesson</h3>
-                  <p className="text-sm text-slate-400 mt-1">
-                    Create a new lesson in this category
-                  </p>
+            {/* Add Lesson Button - not shown for Quick Scenarios view */}
+            {!isQuickScenariosView && (
+              <button
+                onClick={() => setShowLessonModal(true)}
+                disabled={!apiConfigured}
+                className="w-full p-4 rounded-xl border border-dashed border-slate-600 bg-slate-800/30 hover:border-emerald-500/50 hover:bg-slate-800/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">➕</span>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-bold">Add New Lesson</h3>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Create a new lesson in this category
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1293,6 +1351,67 @@ export default function ConversationsPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move to Category Modal */}
+      {showMoveModal && scenarioToMove && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-2">Move to Category</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Move "{scenarioToMove.title}" to a category
+            </p>
+
+            <div className="space-y-2">
+              {/* Preset categories */}
+              {presetTypes.map((type) => {
+                const typeInfo = SCENARIO_TYPE_INFO[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleMoveToCategory(type)}
+                    className="w-full text-left p-3 rounded-lg border border-slate-700 bg-slate-700/50 hover:border-emerald-500/50 hover:bg-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{SCENARIO_EMOJIS[type]}</span>
+                      <div>
+                        <p className="font-medium">{typeInfo?.title || type}</p>
+                        <p className="text-xs text-slate-400">{typeInfo?.titleTurkish}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Custom categories */}
+              {customCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleMoveToCategory(category.type)}
+                  className="w-full text-left p-3 rounded-lg border border-slate-700 bg-slate-700/50 hover:border-emerald-500/50 hover:bg-slate-700 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{category.emoji}</span>
+                    <div>
+                      <p className="font-medium">{category.title}</p>
+                      <p className="text-xs text-slate-400">{category.titleTurkish}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                setShowMoveModal(false);
+                setScenarioToMove(null);
+              }}
+              className="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
