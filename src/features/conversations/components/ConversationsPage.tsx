@@ -25,15 +25,6 @@ const SCENARIO_EMOJIS: Record<string, string> = {
   custom: '✨',
 };
 
-const DIFFICULTY_STYLES: Record<DifficultyLevel, string> = {
-  A1: 'bg-green-500/20 text-green-400',
-  A2: 'bg-blue-500/20 text-blue-400',
-  B1: 'bg-purple-500/20 text-purple-400',
-  B2: 'bg-orange-500/20 text-orange-400',
-  C1: 'bg-red-500/20 text-red-400',
-  C2: 'bg-pink-500/20 text-pink-400',
-};
-
 const TRANSLATION_OPTIONS: { value: TranslationMode; label: string; description: string }[] = [
   { value: 'always', label: 'With Translations', description: 'Show English after each Turkish sentence' },
   { value: 'none', label: 'Turkish Only', description: 'Full immersion - no English translations' },
@@ -71,6 +62,7 @@ export default function ConversationsPage() {
 
   const addCard = useFlashcardStore((state) => state.addCard);
   const getScenarioMasteryTier = useUserStore((state) => state.getScenarioMasteryTier);
+  const getScenarioMastery = useUserStore((state) => state.getScenarioMastery);
 
   const [userInput, setUserInput] = useState('');
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -581,7 +573,9 @@ export default function ConversationsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {scenarios.map((scenario) => {
             const masteryTier = getScenarioMasteryTier(scenario.type as ScenarioType);
+            const masteryData = getScenarioMastery(scenario.type as ScenarioType);
             const masteryStyles = MASTERY_TIER_STYLES[masteryTier];
+            const highestCompleted = masteryData?.highestMastered;
 
             return (
               <button
@@ -594,16 +588,11 @@ export default function ConversationsPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className={`font-bold ${masteryStyles.textClass || 'text-slate-100'}`}>{scenario.title}</h3>
-                      <div className="flex items-center gap-1.5">
-                        {masteryTier !== 'none' && (
-                          <span className={`text-xs px-2 py-0.5 rounded font-medium ${masteryStyles.badge}`}>
-                            {masteryStyles.label}
-                          </span>
-                        )}
-                        <span className={`text-xs px-2 py-0.5 rounded ${DIFFICULTY_STYLES[scenario.difficulty]}`}>
-                          {scenario.difficulty}
+                      {highestCompleted && (
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${masteryStyles.badge || 'bg-emerald-500/20 text-emerald-400'}`}>
+                          {highestCompleted === 'C2' ? 'Mastered' : `Up to ${highestCompleted}`}
                         </span>
-                      </div>
+                      )}
                     </div>
                     <p className={`text-sm mt-1 ${masteryStyles.textClass ? 'opacity-80' : 'text-slate-400'} ${masteryStyles.textClass || ''}`}>{scenario.titleTurkish}</p>
                     <p className={`text-sm mt-2 ${masteryStyles.textClass ? 'opacity-70' : 'text-slate-500'} ${masteryStyles.textClass || ''}`}>{scenario.description}</p>

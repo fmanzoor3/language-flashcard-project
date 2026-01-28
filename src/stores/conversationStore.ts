@@ -400,7 +400,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   }),
 
   runAssessment: async () => {
-    const { currentConversation, messages, selectedDifficulty, usedAssistInSession, currentScenario } = get();
+    const { currentConversation, messages, selectedDifficulty, usedAssistInSession, currentScenario, translationMode } = get();
     if (!currentConversation || messages.length < 2) {
       set({ error: 'Need at least one exchange to assess' });
       return;
@@ -444,7 +444,9 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
       }
 
       // Update scenario mastery based on assessment score
-      if (currentScenario && assessment.isMastered) {
+      // Mastery requires: good score (isMastered), no assist used, and Turkish-only mode (no translations)
+      const completedWithFullImmersion = assessment.isMastered && translationMode === 'none';
+      if (currentScenario && completedWithFullImmersion) {
         await useUserStore.getState().updateScenarioMastery(
           currentScenario.type,
           selectedDifficulty,
