@@ -180,6 +180,7 @@ export default function ConversationsPage() {
       const scenario = await createCustomScenario(customDescription, customDifficulty);
       selectScenario(scenario);
       setShowCustomModal(false);
+      setShowScenarioModal(true);
       setCustomDescription('');
     } catch {
       // Error is handled in store
