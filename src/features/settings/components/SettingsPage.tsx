@@ -97,28 +97,32 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Response Mode */}
-        <section className="bg-slate-800 rounded-xl p-4 space-y-4">
+        {/* Response Mode - Coming Soon */}
+        <section className="bg-slate-800 rounded-xl p-4 space-y-4 opacity-60">
           <div>
-            <h2 className="font-semibold text-lg">Response Mode</h2>
+            <h2 className="font-semibold text-lg flex items-center gap-2">
+              Response Mode
+              <span className="text-xs bg-slate-600 text-slate-300 px-2 py-0.5 rounded-full">
+                Coming Soon
+              </span>
+            </h2>
             <p className="text-sm text-slate-400 mt-1">
-              How you respond in conversations.
+              Choose how you respond in conversations. This feature is planned for a future update.
             </p>
           </div>
           <div className="grid gap-2">
             {RESPONSE_MODE_OPTIONS.map((option) => (
-              <button
+              <div
                 key={option.value}
-                onClick={() => updateSettings({ preferredResponseMode: option.value })}
-                className={`text-left p-3 rounded-lg transition-colors ${
+                className={`text-left p-3 rounded-lg cursor-not-allowed ${
                   settings.preferredResponseMode === option.value
                     ? 'bg-emerald-500/20 border border-emerald-500/50'
-                    : 'bg-slate-700 hover:bg-slate-600'
+                    : 'bg-slate-700'
                 }`}
               >
                 <div className="font-medium">{option.label}</div>
                 <div className="text-sm text-slate-400">{option.description}</div>
-              </button>
+              </div>
             ))}
           </div>
         </section>

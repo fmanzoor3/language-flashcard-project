@@ -4,6 +4,8 @@ import { initializeDatabase } from './services/storage/db';
 import { useUserStore } from './stores/userStore';
 import { useFlashcardStore } from './stores/flashcardStore';
 import { useGameStore } from './stores/gameStore';
+import { useConversationStore } from './stores/conversationStore';
+import { useListeningStore } from './stores/listeningStore';
 import FlashcardsPage from './features/flashcards/components/FlashcardsPage';
 import ConversationsPage from './features/conversations/components/ConversationsPage';
 import ListeningPage from './features/listening/components/ListeningPage';
@@ -21,6 +23,10 @@ function App() {
 
   const gameModeEnabled = settings?.gameModeEnabled ?? true;
 
+  // Get setDifficulty actions from conversation and listening stores
+  const setConversationDifficulty = useConversationStore((state) => state.setDifficulty);
+  const setListeningDifficulty = useListeningStore((state) => state.setDifficulty);
+
   useEffect(() => {
     async function init() {
       await initializeDatabase();
@@ -29,6 +35,14 @@ function App() {
     }
     init();
   }, [loadUser, loadCards, loadGameState]);
+
+  // Sync difficulty setting to conversation and listening stores
+  useEffect(() => {
+    if (settings?.difficultyLevel) {
+      setConversationDifficulty(settings.difficultyLevel);
+      setListeningDifficulty(settings.difficultyLevel);
+    }
+  }, [settings?.difficultyLevel, setConversationDifficulty, setListeningDifficulty]);
 
   if (!isInitialized) {
     return (

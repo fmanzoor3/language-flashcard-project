@@ -74,6 +74,7 @@ export default function ConversationsPage() {
 
   const [userInput, setUserInput] = useState('');
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [showScenarioModal, setShowScenarioModal] = useState(false);
   const [customDescription, setCustomDescription] = useState('');
   const [customDifficulty, setCustomDifficulty] = useState<DifficultyLevel>('A2');
   const [flashcardSelection, setFlashcardSelection] = useState<FlashcardSelection | null>(null);
@@ -100,9 +101,15 @@ export default function ConversationsPage() {
 
   const handleSelectScenario = (scenario: Scenario) => {
     selectScenario(scenario);
+    setShowScenarioModal(true);
+  };
+
+  const handleCloseScenarioModal = () => {
+    setShowScenarioModal(false);
   };
 
   const handleStartConversation = async () => {
+    setShowScenarioModal(false);
     await startNewConversation();
   };
 
@@ -575,17 +582,12 @@ export default function ConversationsPage() {
           {scenarios.map((scenario) => {
             const masteryTier = getScenarioMasteryTier(scenario.type as ScenarioType);
             const masteryStyles = MASTERY_TIER_STYLES[masteryTier];
-            const isSelected = currentScenario?.id === scenario.id;
 
             return (
               <button
                 key={scenario.id}
                 onClick={() => handleSelectScenario(scenario)}
-                className={`text-left p-4 rounded-xl border transition-all ${
-                  isSelected
-                    ? 'bg-emerald-500/10 border-emerald-500/50'
-                    : `${masteryStyles.bg} ${masteryStyles.border} ${masteryStyles.glow} hover:border-slate-500`
-                }`}
+                className={`text-left p-4 rounded-xl border transition-all ${masteryStyles.bg} ${masteryStyles.border} ${masteryStyles.glow} hover:border-slate-500`}
               >
                 <div className="flex items-start gap-3">
                   <span className="text-3xl">{SCENARIO_EMOJIS[scenario.type]}</span>
@@ -644,82 +646,6 @@ export default function ConversationsPage() {
             </div>
           </div>
         </button>
-
-        {/* Selected Scenario Actions */}
-        {currentScenario && (
-          <div className="mt-6 p-6 rounded-xl bg-slate-800 border border-slate-700">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{SCENARIO_EMOJIS[currentScenario.type]}</span>
-              <div>
-                <h3 className="font-bold text-lg">{currentScenario.title}</h3>
-                <p className="text-sm text-slate-400">{currentScenario.titleTurkish}</p>
-              </div>
-            </div>
-
-            <p className="text-slate-300 mb-4">{currentScenario.description}</p>
-
-            {/* Difficulty Selection */}
-            <div className="mb-4">
-              <label className="block text-sm text-slate-400 mb-2">Difficulty Level</label>
-              <div className="grid grid-cols-6 gap-1">
-                {(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as DifficultyLevel[]).map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => setDifficulty(level)}
-                    className={`py-2 rounded text-sm font-medium transition-colors ${
-                      selectedDifficulty === level
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Translation Mode Selection */}
-            <div className="mb-6">
-              <label className="block text-sm text-slate-400 mb-2">Translation Mode</label>
-              <div className="space-y-2">
-                {TRANSLATION_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setTranslationMode(option.value)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      translationMode === option.value
-                        ? 'bg-emerald-500/10 border-emerald-500/50'
-                        : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{option.label}</span>
-                      {translationMode === option.value && (
-                        <span className="text-emerald-400">✓</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">{option.description}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleStartConversation}
-              disabled={isLoading || !apiConfigured}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Starting...
-                </span>
-              ) : (
-                'Start Conversation'
-              )}
-            </button>
-          </div>
-        )}
 
         {/* Quick Vocabulary Section */}
         <div className="mt-8">
@@ -817,6 +743,114 @@ export default function ConversationsPage() {
                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2 rounded-lg transition-colors"
               >
                 {isLoading ? 'Creating...' : 'Create Scenario'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scenario Configuration Modal */}
+      {showScenarioModal && currentScenario && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl">{SCENARIO_EMOJIS[currentScenario.type]}</span>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">{currentScenario.title}</h2>
+                <p className="text-sm text-slate-400">{currentScenario.titleTurkish}</p>
+              </div>
+              <button
+                onClick={handleCloseScenarioModal}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-slate-300 text-sm mb-4">{currentScenario.description}</p>
+
+            {/* Vocabulary Preview */}
+            {currentScenario.vocabularyFocus && currentScenario.vocabularyFocus.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-slate-400 mb-2">Vocabulary focus</p>
+                <div className="flex flex-wrap gap-1">
+                  {currentScenario.vocabularyFocus.slice(0, 6).map((word) => (
+                    <span key={word} className="text-xs bg-slate-700 px-2 py-0.5 rounded">
+                      {word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Difficulty Selection */}
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-2">Difficulty Level</label>
+              <div className="grid grid-cols-6 gap-1">
+                {(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as DifficultyLevel[]).map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setDifficulty(level)}
+                    className={`py-2 rounded text-sm font-medium transition-colors ${
+                      selectedDifficulty === level
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Translation Mode Selection */}
+            <div className="mb-6">
+              <label className="block text-sm text-slate-400 mb-2">Translation Mode</label>
+              <div className="space-y-2">
+                {TRANSLATION_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setTranslationMode(option.value)}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                      translationMode === option.value
+                        ? 'bg-emerald-500/10 border-emerald-500/50'
+                        : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{option.label}</span>
+                      {translationMode === option.value && (
+                        <span className="text-emerald-400">✓</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">{option.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseScenarioModal}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStartConversation}
+                disabled={isLoading || !apiConfigured}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Starting...
+                  </span>
+                ) : (
+                  'Start Conversation'
+                )}
               </button>
             </div>
           </div>
