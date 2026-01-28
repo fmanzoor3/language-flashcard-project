@@ -79,7 +79,7 @@ export default function ConversationsPage() {
     error,
     selectedDifficulty,
     translationMode,
-    assistSuggestions,
+    assistResponse,
     isLoadingAssist,
     isAssessing,
     loadScenarios,
@@ -127,6 +127,10 @@ export default function ConversationsPage() {
   // Move scenario to category state
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [scenarioToMove, setScenarioToMove] = useState<Scenario | null>(null);
+
+  // Assist modal state
+  const [showAssistModal, setShowAssistModal] = useState(false);
+  const [assistQuestion, setAssistQuestion] = useState('');
 
   // Track which scenario type is currently selected (for drill-down view)
   const [selectedScenarioType, setSelectedScenarioType] = useState<ScenarioType | null>(null);
@@ -256,6 +260,30 @@ export default function ConversationsPage() {
     await moveScenarioToCategory(scenarioToMove.id, targetCategoryType);
     setShowMoveModal(false);
     setScenarioToMove(null);
+  };
+
+  const handleAssistClick = () => {
+    setShowAssistModal(true);
+  };
+
+  const handleQuickAssist = () => {
+    setShowAssistModal(false);
+    requestAssist('suggestions');
+  };
+
+  const handleAskQuestion = async () => {
+    if (!assistQuestion.trim()) return;
+    setShowAssistModal(false);
+    // Detect if it's a "how do I say" question or a grammar question
+    const questionLower = assistQuestion.toLowerCase();
+    const isHowToSay = questionLower.includes('how do i say') ||
+                       questionLower.includes('how to say') ||
+                       questionLower.includes('how would i say') ||
+                       questionLower.includes('what is') ||
+                       questionLower.includes("what's the word for");
+    const mode = isHowToSay ? 'howto' : 'grammar';
+    await requestAssist(mode, assistQuestion);
+    setAssistQuestion('');
   };
 
   const handleSelectText = async (text: string) => {
@@ -490,11 +518,13 @@ export default function ConversationsPage() {
           </div>
         )}
 
-        {/* Assist Suggestions */}
-        {assistSuggestions.length > 0 && (
-          <div className="border-t border-slate-700 px-4 py-3 bg-amber-500/5 shrink-0">
+        {/* Assist Response */}
+        {assistResponse && (
+          <div className="border-t border-slate-700 px-4 py-3 bg-amber-500/5 shrink-0 max-h-64 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-amber-400 font-medium">Suggested responses:</p>
+              <p className="text-xs text-amber-400 font-medium">
+                {assistResponse.type === 'explanation' ? 'Help' : 'Suggested responses:'}
+              </p>
               <button
                 onClick={clearAssist}
                 className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
@@ -502,8 +532,17 @@ export default function ConversationsPage() {
                 Dismiss
               </button>
             </div>
+
+            {/* Show explanation if present */}
+            {assistResponse.explanation && (
+              <div className="bg-slate-800/80 rounded-lg p-3 mb-3 border border-slate-700">
+                <p className="text-sm text-slate-200">{assistResponse.explanation}</p>
+              </div>
+            )}
+
+            {/* Show examples/suggestions */}
             <div className="space-y-2">
-              {assistSuggestions.map((suggestion, index) => (
+              {(assistResponse.suggestions || assistResponse.examples || []).map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleUseSuggestion(suggestion.turkish)}
@@ -525,7 +564,7 @@ export default function ConversationsPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={requestAssist}
+              onClick={handleAssistClick}
               disabled={isStreaming || isLoading || isLoadingAssist || messages.length === 0}
               className="bg-amber-500/20 hover:bg-amber-500/30 disabled:bg-slate-700 disabled:cursor-not-allowed text-amber-400 disabled:text-slate-500 px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5"
               title="Get help with your response"
@@ -634,6 +673,66 @@ export default function ConversationsPage() {
                 >
                   {flashcardSelection.isLoading ? 'Loading...' : 'Add to Flashcards'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assist Modal */}
+        {showAssistModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-bold mb-4">How can I help?</h3>
+
+              {/* Quick Assist Button */}
+              <button
+                onClick={handleQuickAssist}
+                className="w-full text-left p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/20 transition-colors mb-4"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">💬</span>
+                  <div>
+                    <p className="font-medium text-amber-400">Suggest responses</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Get 3 suggested responses to continue the conversation
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Ask a Question */}
+              <div className="space-y-3">
+                <p className="text-sm text-slate-400">Or ask a specific question:</p>
+                <textarea
+                  value={assistQuestion}
+                  onChange={(e) => setAssistQuestion(e.target.value)}
+                  placeholder={'Examples:\n• How do I say "I want to order a chicken kebab"?\n• What\'s the difference between "var" and "yok"?\n• How do I form past tense?'}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 resize-none h-28 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && assistQuestion.trim()) {
+                      e.preventDefault();
+                      handleAskQuestion();
+                    }
+                  }}
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowAssistModal(false);
+                      setAssistQuestion('');
+                    }}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAskQuestion}
+                    disabled={!assistQuestion.trim()}
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2 rounded-lg transition-colors"
+                  >
+                    Ask
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -12,6 +12,8 @@ import {
   type TranslationMode,
   type ConversationOptions,
   type AssistSuggestion,
+  type AssistResponse,
+  type AssistMode,
 } from '../services/azure/conversationService';
 import { assessConversation, calculateXPFromAssessment } from '../services/azure/assessmentService';
 import { useUserStore } from './userStore';
@@ -45,6 +47,7 @@ interface ConversationStore {
   translationMode: TranslationMode;
 
   // Assist feature
+  assistResponse: AssistResponse | null;
   assistSuggestions: AssistSuggestion[];
   isLoadingAssist: boolean;
   usedAssistInSession: boolean;
@@ -69,7 +72,7 @@ interface ConversationStore {
   deleteCategory: (categoryId: string) => Promise<void>;
   moveScenarioToCategory: (scenarioId: string, targetCategoryType: string) => Promise<void>;
   addWordToFlashcards: (turkish: string) => Promise<void>;
-  requestAssist: () => Promise<void>;
+  requestAssist: (mode?: AssistMode, customQuestion?: string) => Promise<void>;
   clearAssist: () => void;
   clearError: () => void;
   reset: () => void;
@@ -102,6 +105,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   translationMode: 'always',
 
   // Assist feature
+  assistResponse: null,
   assistSuggestions: [],
   isLoadingAssist: false,
   usedAssistInSession: false,
@@ -491,11 +495,11 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     }
   },
 
-  requestAssist: async () => {
+  requestAssist: async (mode: AssistMode = 'suggestions', customQuestion?: string) => {
     const { messages, selectedDifficulty, currentConversation } = get();
     if (messages.length === 0) return;
 
-    set({ isLoadingAssist: true, assistSuggestions: [], usedAssistInSession: true });
+    set({ isLoadingAssist: true, assistResponse: null, assistSuggestions: [], usedAssistInSession: true });
 
     // Update conversation to track assist usage
     if (currentConversation) {
@@ -504,8 +508,10 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     }
 
     try {
-      const suggestions = await getAssistSuggestions(messages, selectedDifficulty);
-      set({ assistSuggestions: suggestions, isLoadingAssist: false });
+      const response = await getAssistSuggestions(messages, selectedDifficulty, mode, customQuestion);
+      // For backwards compatibility, also set assistSuggestions
+      const suggestions = response.suggestions || response.examples || [];
+      set({ assistResponse: response, assistSuggestions: suggestions, isLoadingAssist: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to get suggestions',
@@ -514,7 +520,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     }
   },
 
-  clearAssist: () => set({ assistSuggestions: [] }),
+  clearAssist: () => set({ assistResponse: null, assistSuggestions: [] }),
 
   clearError: () => set({ error: null }),
 
@@ -528,6 +534,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
     isLoading: false,
     isStreaming: false,
     streamingContent: '',
+    assistResponse: null,
     assistSuggestions: [],
     isLoadingAssist: false,
     usedAssistInSession: false,

@@ -533,10 +533,21 @@ export interface AssistSuggestion {
   explanation?: string;
 }
 
+export interface AssistResponse {
+  type: 'suggestions' | 'explanation';
+  suggestions?: AssistSuggestion[];
+  explanation?: string;
+  examples?: AssistSuggestion[];
+}
+
+export type AssistMode = 'suggestions' | 'grammar' | 'howto';
+
 export async function getAssistSuggestions(
   conversationHistory: ConversationMessage[],
-  difficulty: DifficultyLevel
-): Promise<AssistSuggestion[]> {
+  difficulty: DifficultyLevel,
+  mode: AssistMode = 'suggestions',
+  customQuestion?: string
+): Promise<AssistResponse> {
   const lastAssistantMessage = [...conversationHistory]
     .reverse()
     .find((m) => m.role === 'assistant');
@@ -546,7 +557,63 @@ export async function getAssistSuggestions(
     .map((m) => `${m.role}: ${m.content}`)
     .join('\n');
 
-  const prompt = `You are helping a Turkish language learner (${difficulty} level) who is stuck and doesn't know how to respond.
+  let prompt: string;
+
+  if (mode === 'howto' && customQuestion) {
+    // User is asking "How do I say X?"
+    prompt = `You are a Turkish language tutor helping a ${difficulty} level learner.
+
+The learner is in a conversation and wants to know how to say something in Turkish.
+
+Recent conversation context:
+${conversationContext}
+
+The learner asks: "${customQuestion}"
+
+Provide 2-3 ways to express this in Turkish, appropriate for their ${difficulty} level.
+Include variations from formal to casual if applicable.
+
+Respond with ONLY JSON (no code blocks):
+{
+  "type": "explanation",
+  "explanation": "Brief explanation of how to express this concept in Turkish (1-2 sentences)",
+  "examples": [
+    {
+      "turkish": "The Turkish phrase/sentence",
+      "english": "English translation",
+      "explanation": "When to use this variation (e.g., formal, casual, polite)"
+    }
+  ]
+}`;
+  } else if (mode === 'grammar' && customQuestion) {
+    // User is asking a grammar question
+    prompt = `You are a Turkish language tutor helping a ${difficulty} level learner.
+
+The learner is in a conversation and has a grammar question.
+
+Recent conversation context:
+${conversationContext}
+
+The learner asks: "${customQuestion}"
+
+Provide a clear, concise explanation appropriate for their ${difficulty} level.
+Include 2-3 example sentences demonstrating the grammar point.
+
+Respond with ONLY JSON (no code blocks):
+{
+  "type": "explanation",
+  "explanation": "Clear explanation of the grammar concept (2-4 sentences, appropriate for ${difficulty} level)",
+  "examples": [
+    {
+      "turkish": "Example sentence in Turkish",
+      "english": "English translation",
+      "explanation": "How this example demonstrates the grammar point"
+    }
+  ]
+}`;
+  } else {
+    // Default: provide response suggestions
+    prompt = `You are helping a Turkish language learner (${difficulty} level) who is stuck and doesn't know how to respond.
 
 Recent conversation:
 ${conversationContext}
@@ -558,6 +625,7 @@ Each suggestion should be a complete, natural response they could use.
 
 Respond with ONLY JSON (no code blocks):
 {
+  "type": "suggestions",
   "suggestions": [
     {
       "turkish": "The Turkish response",
@@ -566,6 +634,7 @@ Respond with ONLY JSON (no code blocks):
     }
   ]
 }`;
+  }
 
   const response = await chatCompletion(
     [{ role: 'user', content: prompt }],
@@ -574,8 +643,8 @@ Respond with ONLY JSON (no code blocks):
 
   try {
     const parsed = JSON.parse(response);
-    return parsed.suggestions || [];
+    return parsed;
   } catch {
-    return [];
+    return { type: 'suggestions', suggestions: [] };
   }
 }
