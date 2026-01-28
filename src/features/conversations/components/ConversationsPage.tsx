@@ -962,12 +962,7 @@ export default function ConversationsPage() {
                     <div className="flex items-start gap-3">
                       <span className="text-2xl">{isQuickScenariosView ? '✨' : (isCustomCategory ? selectedCustomCategory?.emoji : SCENARIO_EMOJIS[scenario.type])}</span>
                       <div className="flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="font-bold text-slate-100">{scenario.title}</h3>
-                          <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">
-                            {scenario.difficulty}
-                          </span>
-                        </div>
+                        <h3 className="font-bold text-slate-100">{scenario.title}</h3>
                         <p className="text-sm text-slate-400 mt-1">{scenario.titleTurkish}</p>
                         <p className="text-sm text-slate-500 mt-2">{scenario.description}</p>
                         {scenario.vocabularyFocus && (
