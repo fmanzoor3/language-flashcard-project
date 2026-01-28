@@ -13,6 +13,8 @@ export default function TranscriptionPage() {
     isServiceAvailable,
     checkMicrophoneAccess,
     microphonePermission,
+    isTabCaptureSupported,
+    startSession,
   } = useTranscriptionStore();
 
   const [reviewSession, setReviewSession] = useState<string | null>(null);
@@ -120,13 +122,34 @@ export default function TranscriptionPage() {
                   <span>Connecting...</span>
                 </div>
               ) : (
-                <button
-                  onClick={() => useTranscriptionStore.getState().startSession()}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-8 py-3 rounded-xl transition-colors flex items-center gap-2 mx-auto"
-                >
-                  <span className="text-xl">▶</span>
-                  <span>Start Transcription</span>
-                </button>
+                <div className="space-y-3">
+                  {/* Microphone option */}
+                  <button
+                    onClick={() => startSession('microphone')}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-8 py-3 rounded-xl transition-colors flex items-center justify-center gap-3"
+                  >
+                    <span className="text-xl">🎙️</span>
+                    <span>Use Microphone</span>
+                  </button>
+
+                  {/* Tab audio capture option */}
+                  {isTabCaptureSupported() && (
+                    <button
+                      onClick={() => startSession('tab')}
+                      className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium px-8 py-3 rounded-xl transition-colors flex items-center justify-center gap-3"
+                    >
+                      <span className="text-xl">🔊</span>
+                      <span>Capture Tab Audio</span>
+                    </button>
+                  )}
+
+                  {/* Help text for tab capture */}
+                  {isTabCaptureSupported() && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      Tab capture lets you transcribe audio from browser tabs (Teams web, YouTube, etc.)
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Features list */}

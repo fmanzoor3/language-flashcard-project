@@ -1,7 +1,9 @@
 /**
  * Audio Capture Service
- * Handles microphone access and audio streaming for real-time transcription
+ * Handles microphone and tab audio capture for real-time transcription
  */
+
+import type { AudioSourceType } from '../../types';
 
 export type MicrophonePermission = 'granted' | 'denied' | 'prompt';
 
@@ -12,6 +14,7 @@ interface AudioCaptureState {
   processorNode: ScriptProcessorNode | null;
   isCapturing: boolean;
   isPaused: boolean;
+  audioSource: AudioSourceType;
 }
 
 let captureState: AudioCaptureState = {
@@ -21,6 +24,7 @@ let captureState: AudioCaptureState = {
   processorNode: null,
   isCapturing: false,
   isPaused: false,
+  audioSource: 'microphone',
 };
 
 // Target sample rate for Azure transcription API
@@ -55,6 +59,7 @@ export async function initializeMicrophone(): Promise<MediaStream> {
     });
 
     captureState.mediaStream = stream;
+    captureState.audioSource = 'microphone';
     return stream;
   } catch (error) {
     if (error instanceof DOMException) {
@@ -67,6 +72,75 @@ export async function initializeMicrophone(): Promise<MediaStream> {
     }
     throw new Error('Failed to access microphone. Please check your audio settings.');
   }
+}
+
+/**
+ * Request tab audio capture via screen/tab sharing
+ * This captures audio from a browser tab (useful for capturing audio from web apps like Teams, Meet, etc.)
+ */
+export async function initializeTabCapture(): Promise<MediaStream> {
+  try {
+    // Request screen/tab capture with audio only
+    // The user will see a picker to choose which tab to capture
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        // We need to request video for getDisplayMedia, but we'll only use audio
+        // Some browsers require video to be requested
+        width: 1,
+        height: 1,
+        frameRate: 1,
+      },
+      audio: {
+        echoCancellation: false,  // Don't process tab audio
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+      // @ts-expect-error - preferCurrentTab is a newer API option
+      preferCurrentTab: false, // Don't default to current tab
+    });
+
+    // Check if we got an audio track
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      // Stop the video track if present
+      stream.getVideoTracks().forEach(track => track.stop());
+      throw new Error('No audio track available. Please select a tab with audio.');
+    }
+
+    // Stop the video track - we only need audio
+    stream.getVideoTracks().forEach(track => track.stop());
+
+    // Create a new stream with only the audio track
+    const audioOnlyStream = new MediaStream(audioTracks);
+
+    captureState.mediaStream = audioOnlyStream;
+    captureState.audioSource = 'tab';
+    return audioOnlyStream;
+  } catch (error) {
+    if (error instanceof DOMException) {
+      if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
+        throw new Error('Tab capture cancelled. Please select a tab to capture audio from.');
+      }
+      if (error.name === 'NotSupportedError') {
+        throw new Error('Tab audio capture is not supported in this browser. Please use Chrome or Edge.');
+      }
+    }
+    throw new Error('Failed to capture tab audio. Please try again.');
+  }
+}
+
+/**
+ * Check if tab audio capture is supported in this browser
+ */
+export function isTabCaptureSupported(): boolean {
+  return 'getDisplayMedia' in navigator.mediaDevices;
+}
+
+/**
+ * Get the current audio source type
+ */
+export function getAudioSource(): AudioSourceType {
+  return captureState.audioSource;
 }
 
 /**
@@ -141,6 +215,7 @@ export function stopCapture(): void {
 
   captureState.isCapturing = false;
   captureState.isPaused = false;
+  captureState.audioSource = 'microphone';
 }
 
 /**

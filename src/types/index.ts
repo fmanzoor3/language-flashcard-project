@@ -548,6 +548,7 @@ export interface XPEvent {
 
 export type TranscriptionStatus = 'idle' | 'recording' | 'paused' | 'processing' | 'completed';
 export type NoiseReductionMode = 'near_field' | 'far_field' | 'none';
+export type AudioSourceType = 'microphone' | 'tab';
 
 export interface TranscriptionSegment {
   id: string;
@@ -568,6 +569,7 @@ export interface TranscriptionSession {
   totalDuration: number;
   status: TranscriptionStatus;
   savedVocabulary: string[];  // IDs of flashcards created from this session
+  audioSource: AudioSourceType;  // Whether audio came from microphone or tab capture
 }
 
 export interface TranscriptionSettings {

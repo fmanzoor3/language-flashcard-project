@@ -4,6 +4,9 @@ import { useUserStore } from './userStore';
 import { chatCompletion } from '../services/azure/openaiClient';
 import {
   initializeMicrophone,
+  initializeTabCapture,
+  isTabCaptureSupported,
+  getAudioSource,
   startCapture,
   stopCapture,
   pauseCapture,
@@ -24,6 +27,7 @@ import type {
   TranscriptionSegment,
   TranscriptionStatus,
   NoiseReductionMode,
+  AudioSourceType,
 } from '../types';
 
 // XP rewards for transcription
@@ -49,7 +53,7 @@ interface TranscriptionStore {
 
   // Actions
   loadPastSessions: () => Promise<void>;
-  startSession: () => Promise<void>;
+  startSession: (audioSource?: AudioSourceType) => Promise<void>;
   stopSession: () => Promise<TranscriptionSession | null>;
   pauseSession: () => void;
   resumeSession: () => void;
@@ -73,6 +77,7 @@ interface TranscriptionStore {
   getSessionDuration: () => number;
   getSessionStatus: () => TranscriptionStatus;
   isServiceAvailable: () => boolean;
+  isTabCaptureSupported: () => boolean;
 }
 
 export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
@@ -106,7 +111,7 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
     }
   },
 
-  startSession: async () => {
+  startSession: async (audioSource: AudioSourceType = 'microphone') => {
     const { noiseReduction, vadThreshold, silenceDuration } = get();
 
     set({ isLoading: true, error: null });
@@ -117,11 +122,18 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
         throw new Error('Transcription service is not configured. Check your Azure settings.');
       }
 
-      // Initialize microphone
-      await initializeMicrophone();
-      set({ microphonePermission: 'granted' });
+      // Initialize audio source based on selection
+      if (audioSource === 'tab') {
+        if (!isTabCaptureSupported()) {
+          throw new Error('Tab audio capture is not supported in this browser. Please use Chrome or Edge.');
+        }
+        await initializeTabCapture();
+      } else {
+        await initializeMicrophone();
+        set({ microphonePermission: 'granted' });
+      }
 
-      // Create new session
+      // Create new session with audio source
       const session: TranscriptionSession = {
         id: crypto.randomUUID(),
         startedAt: new Date(),
@@ -129,6 +141,7 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
         totalDuration: 0,
         status: 'recording',
         savedVocabulary: [],
+        audioSource: getAudioSource(),
       };
 
       // Start transcription WebSocket connection
@@ -389,6 +402,10 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
 
   isServiceAvailable: () => {
     return isTranscriptionAvailable();
+  },
+
+  isTabCaptureSupported: () => {
+    return isTabCaptureSupported();
   },
 }));
 
