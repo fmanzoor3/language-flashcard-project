@@ -25,6 +25,40 @@ const SCENARIO_EMOJIS: Record<string, string> = {
   custom: '✨',
 };
 
+// Scenario type metadata for display
+const SCENARIO_TYPE_INFO: Record<string, { title: string; titleTurkish: string; description: string }> = {
+  restaurant: {
+    title: 'Restaurant',
+    titleTurkish: 'Restoran',
+    description: 'Practice ordering food, talking to waiters, and dining out',
+  },
+  shopping: {
+    title: 'Shopping',
+    titleTurkish: 'Alışveriş',
+    description: 'Learn to shop at markets, stores, and negotiate prices',
+  },
+  travel: {
+    title: 'Travel',
+    titleTurkish: 'Seyahat',
+    description: 'Navigate airports, ask for directions, and explore',
+  },
+  social: {
+    title: 'Social',
+    titleTurkish: 'Sosyal',
+    description: 'Meet people, make small talk, and build relationships',
+  },
+  work: {
+    title: 'Work',
+    titleTurkish: 'İş',
+    description: 'Professional conversations, interviews, and workplace scenarios',
+  },
+  healthcare: {
+    title: 'Healthcare',
+    titleTurkish: 'Sağlık',
+    description: 'Describe symptoms, visit doctors, and get medical help',
+  },
+};
+
 const TRANSLATION_OPTIONS: { value: TranslationMode; label: string; description: string }[] = [
   { value: 'always', label: 'With Translations', description: 'Show English after each Turkish sentence' },
   { value: 'none', label: 'Turkish Only', description: 'Full immersion - no English translations' },
@@ -71,6 +105,9 @@ export default function ConversationsPage() {
   const [customDifficulty, setCustomDifficulty] = useState<DifficultyLevel>('A2');
   const [flashcardSelection, setFlashcardSelection] = useState<FlashcardSelection | null>(null);
   const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
+
+  // Track which scenario type is currently selected (for drill-down view)
+  const [selectedScenarioType, setSelectedScenarioType] = useState<ScenarioType | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -528,15 +565,48 @@ export default function ConversationsPage() {
     );
   }
 
+  // Get unique scenario types (excluding custom scenarios)
+  const scenarioTypes = Array.from(
+    new Set(scenarios.filter(s => s.type !== 'custom').map(s => s.type))
+  ) as ScenarioType[];
+
+  // Get lessons for the selected scenario type
+  const lessonsForSelectedType = selectedScenarioType
+    ? scenarios.filter(s => s.type === selectedScenarioType)
+    : [];
+
   // Scenario selection view
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-4xl mx-auto p-4 md:p-6">
+        {/* Header with back button when viewing lessons */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">Conversation Practice</h2>
-          <p className="text-slate-400">
-            Choose a scenario to practice real-world Turkish conversations
-          </p>
+          {selectedScenarioType ? (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSelectedScenarioType(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                ← Back
+              </button>
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <span>{SCENARIO_EMOJIS[selectedScenarioType]}</span>
+                  {SCENARIO_TYPE_INFO[selectedScenarioType]?.title || selectedScenarioType}
+                </h2>
+                <p className="text-slate-400">
+                  Choose a lesson to practice
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold mb-2">Conversation Practice</h2>
+              <p className="text-slate-400">
+                Choose a scenario to practice real-world Turkish conversations
+              </p>
+            </>
+          )}
         </div>
 
         {/* API Configuration Warning */}
@@ -569,33 +639,139 @@ export default function ConversationsPage() {
           </div>
         )}
 
-        {/* Scenario Grid */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {scenarios.map((scenario) => {
-            const masteryTier = getScenarioMasteryTier(scenario.type as ScenarioType);
-            const masteryData = getScenarioMastery(scenario.type as ScenarioType);
-            const masteryStyles = MASTERY_TIER_STYLES[masteryTier];
-            const highestCompleted = masteryData?.highestMastered;
+        {/* Scenario Types Grid (main view) */}
+        {!selectedScenarioType && (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              {scenarioTypes.map((type) => {
+                const typeInfo = SCENARIO_TYPE_INFO[type];
+                const masteryTier = getScenarioMasteryTier(type);
+                const masteryData = getScenarioMastery(type);
+                const masteryStyles = MASTERY_TIER_STYLES[masteryTier];
+                const highestCompleted = masteryData?.highestMastered;
+                const lessonCount = scenarios.filter(s => s.type === type).length;
 
-            return (
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedScenarioType(type)}
+                    className={`text-left p-4 rounded-xl border transition-all ${masteryStyles.bg} ${masteryStyles.border} ${masteryStyles.glow} hover:border-slate-500`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-3xl">{SCENARIO_EMOJIS[type]}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className={`font-bold ${masteryStyles.textClass || 'text-slate-100'}`}>
+                            {typeInfo?.title || type}
+                          </h3>
+                          {highestCompleted && (
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${masteryStyles.badge || 'bg-emerald-500/20 text-emerald-400'}`}>
+                              {highestCompleted === 'C2' ? 'Mastered' : `${highestCompleted} Completed`}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm mt-1 ${masteryStyles.textClass ? 'opacity-80' : 'text-slate-400'} ${masteryStyles.textClass || ''}`}>
+                          {typeInfo?.titleTurkish}
+                        </p>
+                        <p className={`text-sm mt-2 ${masteryStyles.textClass ? 'opacity-70' : 'text-slate-500'} ${masteryStyles.textClass || ''}`}>
+                          {typeInfo?.description}
+                        </p>
+                        <p className={`text-xs mt-2 ${masteryStyles.textClass ? 'opacity-60' : 'text-slate-500'} ${masteryStyles.textClass || ''}`}>
+                          {lessonCount} lesson{lessonCount !== 1 ? 's' : ''} available
+                        </p>
+                        {masteryStyles.showMasteredLabel && (
+                          <div className="mt-3 pt-2 border-t border-amber-500/30">
+                            <span className="text-xs font-bold text-amber-400 tracking-wider">
+                              MASTERED
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Scenario Button */}
+            <button
+              onClick={() => setShowCustomModal(true)}
+              disabled={!apiConfigured}
+              className="w-full mt-6 p-4 rounded-xl border border-dashed border-slate-600 bg-slate-800/30 hover:border-emerald-500/50 hover:bg-slate-800/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">✨</span>
+                <div className="flex-1 text-left">
+                  <h3 className="font-bold">Create Custom Scenario</h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Describe any situation and AI will generate a conversation for you
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Quick Vocabulary Section */}
+            <div className="mt-8">
+              <h3 className="font-bold text-lg mb-4">Quick Vocabulary</h3>
+              <p className="text-sm text-slate-400 mb-4">
+                Common phrases you'll use in conversations. Tap to add to flashcards!
+              </p>
+
+              <div className="grid gap-2 md:grid-cols-2">
+                {[
+                  { turkish: 'Merhaba', english: 'Hello' },
+                  { turkish: 'Teşekkür ederim', english: 'Thank you' },
+                  { turkish: 'Lütfen', english: 'Please' },
+                  { turkish: 'Evet / Hayır', english: 'Yes / No' },
+                  { turkish: 'Ne kadar?', english: 'How much?' },
+                  { turkish: 'Hesap lütfen', english: 'The bill please' },
+                  { turkish: 'Anlıyorum', english: 'I understand' },
+                  { turkish: 'Anlamıyorum', english: "I don't understand" },
+                ].map((phrase) => (
+                  <button
+                    key={phrase.turkish}
+                    onClick={() => handleQuickAddPhrase(phrase.turkish, phrase.english)}
+                    disabled={addedWords.has(phrase.turkish)}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors text-left ${
+                      addedWords.has(phrase.turkish)
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : 'bg-slate-800/50 border-slate-700 hover:border-emerald-500/50'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-medium">{phrase.turkish}</p>
+                      <p className="text-sm text-slate-400">{phrase.english}</p>
+                    </div>
+                    <span className={addedWords.has(phrase.turkish) ? 'text-emerald-400' : 'text-slate-500'}>
+                      {addedWords.has(phrase.turkish) ? '✓' : '+'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Lessons Grid (when a scenario type is selected) */}
+        {selectedScenarioType && (
+          <div className="grid gap-4">
+            {lessonsForSelectedType.map((scenario) => (
               <button
                 key={scenario.id}
                 onClick={() => handleSelectScenario(scenario)}
-                className={`text-left p-4 rounded-xl border transition-all ${masteryStyles.bg} ${masteryStyles.border} ${masteryStyles.glow} hover:border-slate-500`}
+                className="text-left p-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:border-slate-500 transition-all"
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl">{SCENARIO_EMOJIS[scenario.type]}</span>
+                  <span className="text-2xl">{SCENARIO_EMOJIS[scenario.type]}</span>
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className={`font-bold ${masteryStyles.textClass || 'text-slate-100'}`}>{scenario.title}</h3>
-                      {highestCompleted && (
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${masteryStyles.badge || 'bg-emerald-500/20 text-emerald-400'}`}>
-                          {highestCompleted === 'C2' ? 'Mastered' : `Up to ${highestCompleted}`}
-                        </span>
-                      )}
+                      <h3 className="font-bold text-slate-100">{scenario.title}</h3>
+                      <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">
+                        {scenario.difficulty}
+                      </span>
                     </div>
-                    <p className={`text-sm mt-1 ${masteryStyles.textClass ? 'opacity-80' : 'text-slate-400'} ${masteryStyles.textClass || ''}`}>{scenario.titleTurkish}</p>
-                    <p className={`text-sm mt-2 ${masteryStyles.textClass ? 'opacity-70' : 'text-slate-500'} ${masteryStyles.textClass || ''}`}>{scenario.description}</p>
+                    <p className="text-sm text-slate-400 mt-1">{scenario.titleTurkish}</p>
+                    <p className="text-sm text-slate-500 mt-2">{scenario.description}</p>
                     {scenario.vocabularyFocus && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {scenario.vocabularyFocus.slice(0, 4).map((word) => (
@@ -605,76 +781,12 @@ export default function ConversationsPage() {
                         ))}
                       </div>
                     )}
-                    {masteryStyles.showMasteredLabel && (
-                      <div className="mt-3 pt-2 border-t border-amber-500/30">
-                        <span className="text-xs font-bold text-amber-400 tracking-wider">
-                          MASTERED
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </button>
-            );
-          })}
-        </div>
-
-        {/* Custom Scenario Button */}
-        <button
-          onClick={() => setShowCustomModal(true)}
-          disabled={!apiConfigured}
-          className="w-full mt-6 p-4 rounded-xl border border-dashed border-slate-600 bg-slate-800/30 hover:border-emerald-500/50 hover:bg-slate-800/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">✨</span>
-            <div className="flex-1 text-left">
-              <h3 className="font-bold">Create Custom Scenario</h3>
-              <p className="text-sm text-slate-400 mt-1">
-                Describe any situation and AI will generate a conversation for you
-              </p>
-            </div>
-          </div>
-        </button>
-
-        {/* Quick Vocabulary Section */}
-        <div className="mt-8">
-          <h3 className="font-bold text-lg mb-4">Quick Vocabulary</h3>
-          <p className="text-sm text-slate-400 mb-4">
-            Common phrases you'll use in conversations. Tap to add to flashcards!
-          </p>
-
-          <div className="grid gap-2 md:grid-cols-2">
-            {[
-              { turkish: 'Merhaba', english: 'Hello' },
-              { turkish: 'Teşekkür ederim', english: 'Thank you' },
-              { turkish: 'Lütfen', english: 'Please' },
-              { turkish: 'Evet / Hayır', english: 'Yes / No' },
-              { turkish: 'Ne kadar?', english: 'How much?' },
-              { turkish: 'Hesap lütfen', english: 'The bill please' },
-              { turkish: 'Anlıyorum', english: 'I understand' },
-              { turkish: 'Anlamıyorum', english: "I don't understand" },
-            ].map((phrase) => (
-              <button
-                key={phrase.turkish}
-                onClick={() => handleQuickAddPhrase(phrase.turkish, phrase.english)}
-                disabled={addedWords.has(phrase.turkish)}
-                className={`flex items-center justify-between p-3 rounded-lg border transition-colors text-left ${
-                  addedWords.has(phrase.turkish)
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-slate-800/50 border-slate-700 hover:border-emerald-500/50'
-                }`}
-              >
-                <div>
-                  <p className="font-medium">{phrase.turkish}</p>
-                  <p className="text-sm text-slate-400">{phrase.english}</p>
-                </div>
-                <span className={addedWords.has(phrase.turkish) ? 'text-emerald-400' : 'text-slate-500'}>
-                  {addedWords.has(phrase.turkish) ? '✓' : '+'}
-                </span>
-              </button>
             ))}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Custom Scenario Modal */}
