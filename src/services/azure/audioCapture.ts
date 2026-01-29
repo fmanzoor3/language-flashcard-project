@@ -29,7 +29,9 @@ let captureState: AudioCaptureState = {
 
 // Target sample rate for Azure transcription API
 const TARGET_SAMPLE_RATE = 24000;
-const BUFFER_SIZE = 4096;
+// Smaller buffer = lower latency (2048 samples @ 24kHz = ~85ms chunks)
+// Trade-off: smaller buffers increase CPU usage but reduce delay
+const BUFFER_SIZE = 2048;
 
 /**
  * Check if microphone permission is already granted
@@ -157,8 +159,14 @@ export function startCapture(onChunk: (base64Chunk: string) => void): void {
     return;
   }
 
-  // Create AudioContext with target sample rate
-  captureState.audioContext = new AudioContext({ sampleRate: TARGET_SAMPLE_RATE });
+  // Create AudioContext - let browser choose optimal sample rate, we'll resample
+  captureState.audioContext = new AudioContext();
+  const actualSampleRate = captureState.audioContext.sampleRate;
+  console.log(`Audio context sample rate: ${actualSampleRate}Hz, target: ${TARGET_SAMPLE_RATE}Hz`);
+
+  // Calculate resampling ratio
+  const resampleRatio = TARGET_SAMPLE_RATE / actualSampleRate;
+  const needsResampling = Math.abs(resampleRatio - 1) > 0.01;
 
   // Create source node from microphone stream
   captureState.sourceNode = captureState.audioContext.createMediaStreamSource(captureState.mediaStream);
@@ -171,7 +179,12 @@ export function startCapture(onChunk: (base64Chunk: string) => void): void {
   captureState.processorNode.onaudioprocess = (event) => {
     if (captureState.isPaused) return;
 
-    const inputData = event.inputBuffer.getChannelData(0);
+    const rawInputData = event.inputBuffer.getChannelData(0);
+
+    // Resample if needed (browser sample rate differs from target)
+    const inputData = needsResampling
+      ? resampleAudio(rawInputData, actualSampleRate, TARGET_SAMPLE_RATE)
+      : rawInputData;
 
     // Convert Float32 samples to PCM16
     const pcm16Buffer = float32ToPCM16(inputData);
@@ -187,6 +200,28 @@ export function startCapture(onChunk: (base64Chunk: string) => void): void {
 
   captureState.isCapturing = true;
   captureState.isPaused = false;
+}
+
+/**
+ * Resample audio data from source sample rate to target sample rate
+ * Uses linear interpolation for efficiency
+ */
+function resampleAudio(input: Float32Array, sourceSampleRate: number, targetSampleRate: number): Float32Array {
+  const ratio = targetSampleRate / sourceSampleRate;
+  const outputLength = Math.round(input.length * ratio);
+  const output = new Float32Array(outputLength);
+
+  for (let i = 0; i < outputLength; i++) {
+    const srcIndex = i / ratio;
+    const srcIndexFloor = Math.floor(srcIndex);
+    const srcIndexCeil = Math.min(srcIndexFloor + 1, input.length - 1);
+    const fraction = srcIndex - srcIndexFloor;
+
+    // Linear interpolation between samples
+    output[i] = input[srcIndexFloor] * (1 - fraction) + input[srcIndexCeil] * fraction;
+  }
+
+  return output;
 }
 
 /**

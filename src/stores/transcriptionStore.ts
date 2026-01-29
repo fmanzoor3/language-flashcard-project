@@ -88,11 +88,11 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
   currentSegmentText: '',
   microphonePermission: 'prompt',
 
-  // Default settings
+  // Default settings - optimized for faster, more responsive transcription
   autoTranslate: true,
   noiseReduction: 'near_field',
-  vadThreshold: 0.5,
-  silenceDuration: 500,
+  vadThreshold: 0.3,       // Lower = more sensitive to speech
+  silenceDuration: 300,    // Shorter = faster segment completion
 
   loadPastSessions: async () => {
     set({ isLoading: true });

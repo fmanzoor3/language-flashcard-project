@@ -76,7 +76,11 @@ export async function startTranscriptionSession(
     silenceDuration?: number;
   } = {}
 ): Promise<void> {
-  const { noiseReduction = 'near_field', vadThreshold = 0.5, silenceDuration = 500 } = options;
+  // Optimized defaults for faster, more responsive transcription:
+  // - Lower VAD threshold (0.3) = more sensitive to speech, catches quieter speakers
+  // - Shorter silence duration (300ms) = faster segment completion
+  // - Shorter prefix padding (200ms) = less delay before speech is captured
+  const { noiseReduction = 'near_field', vadThreshold = 0.3, silenceDuration = 300 } = options;
 
   // Stop any existing session
   stopTranscriptionSession();
@@ -144,13 +148,16 @@ export async function startTranscriptionSession(
           input_audio_format: 'pcm16',
           input_audio_transcription: {
             model: config.deployment, // Use the deployment name (gpt-4o-mini-transcribe)
-            prompt: 'Transcribe the following Turkish speech accurately.',
+            language: 'tr', // Explicitly set Turkish language for better accuracy
+            // Prompt provides context for better transcription quality
+            prompt: 'Bu bir Türkçe konuşma. Turkish conversation transcription. Common words: merhaba, evet, hayır, teşekkürler, lütfen, nasılsın, iyiyim, tamam, anladım.',
           },
           turn_detection: {
             type: 'server_vad',
             threshold: vadThreshold,
-            prefix_padding_ms: 300,
+            prefix_padding_ms: 200, // Reduced from 300 for faster response
             silence_duration_ms: silenceDuration,
+            create_response: false, // We only want transcription, not AI responses
           },
           ...(noiseReduction !== 'none' && {
             input_audio_noise_reduction: {
