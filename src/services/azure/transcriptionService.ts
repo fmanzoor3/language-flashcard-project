@@ -157,7 +157,6 @@ export async function startTranscriptionSession(
             threshold: vadThreshold,
             prefix_padding_ms: 200, // Reduced from 300 for faster response
             silence_duration_ms: silenceDuration,
-            create_response: false, // We only want transcription, not AI responses
           },
           ...(noiseReduction !== 'none' && {
             input_audio_noise_reduction: {
