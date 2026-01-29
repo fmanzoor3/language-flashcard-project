@@ -76,11 +76,11 @@ export async function startTranscriptionSession(
     silenceDuration?: number;
   } = {}
 ): Promise<void> {
-  // Optimized defaults for faster, more responsive transcription:
-  // - Lower VAD threshold (0.3) = more sensitive to speech, catches quieter speakers
-  // - Shorter silence duration (300ms) = faster segment completion
-  // - Shorter prefix padding (200ms) = less delay before speech is captured
-  const { noiseReduction = 'near_field', vadThreshold = 0.3, silenceDuration = 300 } = options;
+  // Settings based on Azure OpenAI documentation:
+  // - Standard VAD threshold (0.5) for balanced speech detection
+  // - Short silence duration (200ms) per docs for quick segment completion
+  // - Standard prefix padding (300ms) per docs
+  const { noiseReduction = 'near_field', vadThreshold = 0.5, silenceDuration = 200 } = options;
 
   // Stop any existing session
   stopTranscriptionSession();
@@ -142,20 +142,20 @@ export async function startTranscriptionSession(
       currentSession.reconnectAttempts = 0;
 
       // Configure session for transcription using the transcription-specific message type
+      // Based on Azure OpenAI documentation for gpt-4o-mini-transcribe
       const sessionConfig = {
         type: 'transcription_session.update',
         session: {
           input_audio_format: 'pcm16',
           input_audio_transcription: {
             model: config.deployment, // Use the deployment name (gpt-4o-mini-transcribe)
-            language: 'tr', // Explicitly set Turkish language for better accuracy
-            // Prompt provides context for better transcription quality
-            prompt: 'Bu bir Türkçe konuşma. Turkish conversation transcription. Common words: merhaba, evet, hayır, teşekkürler, lütfen, nasılsın, iyiyim, tamam, anladım.',
+            language: 'tr', // Turkish language for accurate transcription
+            prompt: 'Transcribe Turkish speech accurately.', // Simple instruction prompt
           },
           turn_detection: {
             type: 'server_vad',
             threshold: vadThreshold,
-            prefix_padding_ms: 200, // Reduced from 300 for faster response
+            prefix_padding_ms: 300, // Standard padding for speech capture
             silence_duration_ms: silenceDuration,
           },
           ...(noiseReduction !== 'none' && {

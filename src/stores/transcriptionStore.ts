@@ -88,11 +88,11 @@ export const useTranscriptionStore = create<TranscriptionStore>((set, get) => ({
   currentSegmentText: '',
   microphonePermission: 'prompt',
 
-  // Default settings - optimized for faster, more responsive transcription
+  // Default settings - balanced for accuracy and responsiveness
   autoTranslate: true,
   noiseReduction: 'near_field',
-  vadThreshold: 0.3,       // Lower = more sensitive to speech
-  silenceDuration: 300,    // Shorter = faster segment completion
+  vadThreshold: 0.5,       // Standard threshold per Azure docs
+  silenceDuration: 200,    // Per Azure docs - quick segment completion
 
   loadPastSessions: async () => {
     set({ isLoading: true });
